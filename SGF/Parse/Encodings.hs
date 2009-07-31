@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleInstances, FlexibleContexts, GeneralizedNewtypeDeriving #-}
-module SGF.Parse.Encodings (guessEncoding) where
+module SGF.Parse.Encodings (guessEncoding, decodeWordStringExplicit) where
 
 import Control.Exception.Extensible
 import Control.Monad.State
@@ -35,3 +35,7 @@ guess ws encoding = case runStateT (decode encoding) ws :: MyIHateGHC of
     _ -> False
 
 guessEncoding ws = filter (guess ws) encodings
+
+decodeWordStringExplicit e ws = case runStateT (decode e) ws :: MyIHateGHC of
+    (MyEither (Right (s,_))) -> Right s
+    (MyEither (Left  ex   )) -> Left ex
