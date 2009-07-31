@@ -27,7 +27,7 @@ data GameType =
     Twixt | Zertz | Plateau | Yinsh | Punct | Gobblet | Hive |
     Exxit | Hnefatal | Kuba | Tripples | Chase | TumblingDown |
     Sahara | Byte | Focus | Dvonn | Tamsk | Gipf | Kropki
-    deriving (Eq, Ord, Show, Read)
+    deriving (Eq, Ord, Bounded, Show, Read)
 
 allGameTypesInSGFOrder =
     [Go, Othello, Chess, Gomoku, NineMen'sMorris, Backgammon,

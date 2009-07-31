@@ -31,6 +31,7 @@ data Error
     | FormatUnsupported         SourcePos
     | GameUnsupported           SourcePos
     | ExtraPropertyValues       SourcePos
+    | OutOfBounds               SourcePos
     | UnknownError              (Maybe String)
     deriving (Eq, Ord, Show)
 
@@ -45,11 +46,15 @@ die           = lift . StateT . const . Left
 dieWithJust e = die . e . position . fromJust
 
 data Warning
-    = DuplicateProperty Property
+    = DuplicateProperty                 Property
+    | SquareSizeSpecifiedAsRectangle    SourcePos
     deriving (Eq, Ord, Show)
 
-data State = State { properties :: [Property], children :: [Tree GameNode] }
+data State = State { properties :: [Property], children :: [Tree [Property]] }
 type Translator a = WriterT [Warning] (StateT State (Either Error)) a
+
+transMap :: (a -> Translator b) -> (Maybe a -> Translator (Maybe b))
+transMap f = maybe (return Nothing) (liftM Just . f)
 -- }}}
 duplicatesOn :: Ord b => (a -> b) -> [a] -> [a]
 duplicatesOn f = map fst
@@ -80,5 +85,16 @@ consumeSingle s = do
 unknownProperties :: Translator (Map String [[Word8]])
 unknownProperties = gets (fromList . map (name &&& values) . properties)
 
-number :: Property -> Translator Integer
+type PTranslator a = Property -> Translator a
+
+number :: PTranslator Integer
 number = undefined
+
+simple :: Header -> PTranslator String
+simple = undefined
+
+text :: Header -> PTranslator String
+text = undefined
+
+compose :: PTranslator a -> PTranslator b -> PTranslator (a, b)
+compose = undefined
