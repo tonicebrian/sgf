@@ -1,17 +1,44 @@
+-- boilerplate {{{
 {-# LANGUAGE NoMonomorphismRestriction #-}
 module SGF.Parse where
 
+import Control.Applicative
+import Control.Arrow
 import Control.Monad
 import Control.Monad.Reader
+import Control.Monad.State
 import Control.Monad.Writer
 import Data.Char
 import Data.Encoding
+import Data.Tree
+import Text.Parsec hiding (newline)
 
 import SGF.Parse.Encodings
-import SGF.Types
+import SGF.Parse.Raw hiding (gameTree, collection)
 import SGF.Parse.Util
-import SGF.Parse.Raw
+import SGF.Types hiding (Game(..))
+import SGF.Types (Game(Game))
+import qualified SGF.Parse.Raw as Raw
+import qualified SGF.Types     as T
+-- }}}
+-- top level {{{
+translate :: Monad m => Translator a -> Tree [Property] -> ParsecT s u m (a, [Warning])
+translate trans state = case runStateT (runWriterT trans) state of
+    Left (UnknownError Nothing ) -> fail ""
+    Left (UnknownError (Just e)) -> fail e
+    Left e                       -> setPosition (errorPosition e) >> fail (show e)
+    Right ((a, warnings), _)     -> return (a, warnings)
 
+collection = second concat . unzip <$> (mapM (translate gameTree) =<< Raw.collection)
+gameTree = do
+    hea <- parseHeader
+    app <- application hea
+    gam <- gameType
+    var <- variationType
+    siz <- size gam
+    return (Game app gam var siz GameHeader (Node GameNode []))
+-- }}}
+-- game header information {{{
 getFormat   :: Translator Integer
 getEncoding :: Translator DynEncoding
 parseHeader :: Translator Header
@@ -25,11 +52,11 @@ getEncoding = do
 parseHeader = liftM2 Header getFormat getEncoding
 
 application         :: Header -> Translator (Maybe (String, String))
-game                :: Translator GameType
+gameType            :: Translator GameType
 variationType       :: Translator (Maybe (VariationType, AutoMarkup))
 size                :: GameType -> Translator (Maybe (Integer, Integer))
 application header  = consumeSingle "AP" >>= transMap (join compose (simple header))
-game                = do
+gameType            = do
     property <- consumeSingle "GM"
     gameType <- maybe (return 1) number property
     if enum (minBound :: GameType) <= gameType && gameType <= enum (maxBound :: GameType)
@@ -56,7 +83,7 @@ size gameType = do
     where
     invalid       t m n   = or [t == Go && (m > 52 || n > 52), m < 1, n < 1]
     checkValidity t m n p = when (invalid t m n) (dieWithJust OutOfBounds p) >> return (Just (m, n))
-
+-- }}}
 -- not in use yet, should probably go in Util {{{
 errorDangling = error "Impossible: dangling escape character"
 newline empty withNewline withoutNewline xs = case xs of

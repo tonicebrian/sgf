@@ -8,7 +8,8 @@ module SGF.Types (
     Game(..),
     Emphasis(..),
     Color(..),
-    GameNode(..)
+    GameNode(..),
+    GameHeader(..)
 ) where
 
 import Data.List
@@ -48,7 +49,7 @@ type AutoMarkup    = Bool
 
 data Game = Game {
     application     :: Maybe (Application, Version),
-    gameType        :: Maybe GameType,
+    gameType        :: GameType,
     variationType   :: Maybe (VariationType, AutoMarkup),
     size            :: Maybe (Integer, Integer),
     header          :: GameHeader,

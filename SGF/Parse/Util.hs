@@ -26,12 +26,12 @@ data Header = Header {
 }
 
 data Error
-    = UnknownEncoding           SourcePos
-    | AmbiguousEncoding         SourcePos
-    | FormatUnsupported         SourcePos
-    | GameUnsupported           SourcePos
-    | ExtraPropertyValues       SourcePos
-    | OutOfBounds               SourcePos
+    = UnknownEncoding           { errorPosition :: SourcePos }
+    | AmbiguousEncoding         { errorPosition :: SourcePos }
+    | FormatUnsupported         { errorPosition :: SourcePos }
+    | GameUnsupported           { errorPosition :: SourcePos }
+    | ExtraPropertyValues       { errorPosition :: SourcePos }
+    | OutOfBounds               { errorPosition :: SourcePos }
     | UnknownError              (Maybe String)
     deriving (Eq, Ord, Show)
 
@@ -50,12 +50,13 @@ data Warning
     | SquareSizeSpecifiedAsRectangle    SourcePos
     deriving (Eq, Ord, Show)
 
-data State = State { properties :: [Property], children :: [Tree [Property]] }
+type State = Tree [Property]
 type Translator a = WriterT [Warning] (StateT State (Either Error)) a
 
 transMap :: (a -> Translator b) -> (Maybe a -> Translator (Maybe b))
 transMap f = maybe (return Nothing) (liftM Just . f)
 -- }}}
+-- handy Translators {{{
 duplicatesOn :: Ord b => (a -> b) -> [a] -> [a]
 duplicatesOn f = map fst
                . concatMap (drop 1)
@@ -64,15 +65,15 @@ duplicatesOn f = map fst
                . map (id &&& f)
 
 duplicateProperties :: State -> [Warning]
-duplicateProperties = map DuplicateProperty . duplicatesOn name . properties
+duplicateProperties = map DuplicateProperty . duplicatesOn name . rootLabel
 
 duplicates :: Translator ()
 duplicates = get >>= tell . duplicateProperties
 
 consume :: String -> Translator (Maybe Property)
 consume s = do
-    (v, rest) <- gets (partition ((== s) . name) . properties)
-    modify (\s -> s { properties = rest })
+    (v, rest) <- gets (partition ((== s) . name) . rootLabel)
+    modify (\s -> s { rootLabel = rest })
     return (listToMaybe v)
 
 consumeSingle :: String -> Translator (Maybe Property)
@@ -83,18 +84,19 @@ consumeSingle s = do
         _ -> return maybeProperty
 
 unknownProperties :: Translator (Map String [[Word8]])
-unknownProperties = gets (fromList . map (name &&& values) . properties)
+unknownProperties = gets (fromList . map (name &&& values) . rootLabel)
 
 type PTranslator a = Property -> Translator a
 
 number :: PTranslator Integer
-number = undefined
+number p = return 2 -- TODO
 
 simple :: Header -> PTranslator String
-simple = undefined
+simple header p = return "-32" -- TODO
 
 text :: Header -> PTranslator String
-text = undefined
+text header p = return "-42" -- TODO
 
 compose :: PTranslator a -> PTranslator b -> PTranslator (a, b)
-compose = undefined
+compose a b p = liftM2 (,) (a p) (b p) -- TODO
+-- }}}
