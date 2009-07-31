@@ -51,9 +51,11 @@ data Game = Game {
     gameType        :: Maybe GameType,
     variationType   :: Maybe (VariationType, AutoMarkup),
     size            :: Maybe (Integer, Integer),
+    header          :: GameHeader,
     game            :: Tree GameNode
     } deriving (Eq, Show, Read)
 
-data Emphasis = Normal | Strong deriving (Eq, Ord, Enum, Show, Read)
-data Color    = Black  | White  deriving (Eq, Ord, Enum, Show, Read)
-data GameNode = GameNode deriving (Eq, Ord, Show, Read) -- TODO
+data Emphasis   = Normal | Strong deriving (Eq, Ord, Enum, Show, Read)
+data Color      = Black  | White  deriving (Eq, Ord, Enum, Show, Read)
+data GameNode   = GameNode   deriving (Eq, Ord, Show, Read) -- TODO
+data GameHeader = GameHeader deriving (Eq, Ord, Show, Read) -- TODO

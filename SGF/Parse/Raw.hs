@@ -30,12 +30,11 @@ noWord      = satisfy . flip notElem . map enum
 
 whitespace  = many (satisfyChar isSpace)
 
--- assumed: the current byte is literally ASCII '\\' iff the current
--- byte is the last byte of the encoding of the actual character '\\' and the
--- byte that is literally ASCII ']' doesn't occur after the first byte of any
--- multi-byte encoded character
--- (in particular, UTF-8, ASCII, ISO 8859-1, and EBCDIC satisfy this
--- property)
+-- assumed: the current byte is literally ASCII '\\' iff the current byte is
+-- the last byte of the encoding of the actual character '\\' and neither of
+-- the bytes that are literally ASCII ']' and ASCII ':' occur after the first
+-- byte of any multi-byte encoded character
+-- (in particular, UTF-8, ASCII, and ISO 8859-1 satisfy this property)
 escapedChar             = liftM2 (\x y -> [x, y]) (exactWord '\\') anyWord
 unescapedExcept      ws = fmap return (noWord ws)
 literalTextExcept    ws = fmap concat $ many (escapedChar <|> unescapedExcept ws)
