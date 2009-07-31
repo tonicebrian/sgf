@@ -12,7 +12,11 @@ import Text.Parsec (SourcePos(..), incSourceColumn)
 import Text.Parsec.Prim
 import Text.Parsec.Combinator
 -- }}}
-data Property = Property SourcePos String [[Word8]]
+data Property = Property {
+    position :: SourcePos,
+    name     :: String,
+    values   :: [[Word8]]
+} deriving (Eq, Ord, Show)
 
 ensure p x = guard (p x) >> return x
 enum = toEnum . fromEnum
