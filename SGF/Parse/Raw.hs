@@ -61,4 +61,4 @@ gameTree = do
     exactWord ')'
     return (Node node (foldr ((return .) . Node) trees nodes))
 
-collection = whitespace >> many1 gameTree <* whitespace <* eof
+collection = whitespace >> sepEndBy1 gameTree whitespace <* whitespace <* eof
