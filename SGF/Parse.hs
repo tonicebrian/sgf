@@ -22,7 +22,7 @@ import SGF.Types (GeneralHeader(GeneralHeader))
 import qualified SGF.Parse.Raw as Raw
 import qualified SGF.Types     as T
 -- }}}
--- top level {{{
+-- top level/testing {{{
 translate :: Monad m => Translator a -> Tree [Property] -> ParsecT s u m (a, [Warning])
 translate trans state = case runStateT (runWriterT trans) state of
     Left (UnknownError Nothing ) -> fail ""
@@ -79,7 +79,7 @@ variationType = consumeSingle "ST" >>= \p -> transMap (number >=> variationType'
 size gameType = do
     property <- consumeSingle "SZ"
     case property of
-        Nothing -> return . lookup gameType $ [(Go, (19, 19)), (Chess, (8, 8))]
+        Nothing -> return $ lookup gameType defaultSize
         Just p  -> if enum ':' `elem` head (values p)
             then do
                 (m, n) <- join compose number p
@@ -91,4 +91,14 @@ size gameType = do
     where
     invalid       t m n   = or [t == Go && (m > 52 || n > 52), m < 1, n < 1]
     checkValidity t m n p = when (invalid t m n) (dieWithJust OutOfBounds p) >> return (Just (m, n))
+-- }}}
+-- game-specific stuff {{{
+defaultSize = [
+    (Go             , (19, 19)),
+    (Chess          , ( 8,  8)),
+    (LinesOfAction  , ( 8,  8)),
+    (Hex            , (11, 11)),
+    (Amazons        , (10, 10)),
+    (Gess           , (20, 20))
+    ]
 -- }}}
