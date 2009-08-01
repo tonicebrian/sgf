@@ -9,6 +9,7 @@ import Control.Monad.Writer
 import Data.Char
 import Data.Encoding
 import Data.Function
+import Data.Ix
 import Data.List
 import Data.Maybe
 import Data.Map (Map(..), fromList, keys)
@@ -186,4 +187,9 @@ listOf a p@(Property { values = vs }) = mapM a [p { values = [v] } | v <- vs]
 elistOf :: PTranslator a -> PTranslator [a]
 elistOf _ (Property { values = [[]] }) = return []
 elistOf a p = listOf a p
+
+mayBeCompoundPoint :: PTranslator Point -> PTranslator [Point]
+mayBeCompoundPoint a p@(Property { values = v:_ }) = case splitColon v of
+    Nothing -> fmap return $ a p
+    Just {} -> fmap range  $ compose a a p
 -- }}}
