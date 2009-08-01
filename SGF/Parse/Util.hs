@@ -64,6 +64,8 @@ data Warning
     | DanglingEscapeCharacterOmitted    SourcePos
     | PropValueOmittedForNoneProperty   Property
     | PreservingUnknownProperty         String
+    | PointSpecifiedAsPointRange        Property
+    | DuplicatePointsOmitted            Property [Point]
     deriving (Eq, Ord, Show)
 
 type State = Tree [Property]
@@ -75,6 +77,7 @@ transMap f = maybe (return Nothing) (liftM Just . f)
 type PTranslator a = Property -> Translator a
 -- }}}
 -- handy Translators {{{
+-- helper functions {{{
 duplicatesOn :: Ord b => (a -> b) -> [a] -> [a]
 duplicatesOn f = map fst
                . concatMap (drop 1)
@@ -87,25 +90,6 @@ duplicateProperties = map DuplicatePropertyOmitted . duplicatesOn name . rootLab
 
 duplicates :: Translator ()
 duplicates = get >>= tell . duplicateProperties
-
-consume :: String -> Translator (Maybe Property)
-consume s = do
-    (v, rest) <- gets (partition ((== s) . name) . rootLabel)
-    modify (\s -> s { rootLabel = rest })
-    return (listToMaybe v)
-
-consumeSingle :: String -> Translator (Maybe Property)
-consumeSingle s = do
-    maybeProperty <- consume s
-    case maybeProperty of
-        Just (Property { values = (_:_:_) }) -> dieWithJust ExtraPropertyValues maybeProperty
-        _ -> return maybeProperty
-
-unknownProperties :: Translator (Map String [[Word8]])
-unknownProperties = do
-    m <- gets (fromList . map (name &&& values) . rootLabel)
-    tell [PreservingUnknownProperty name | name <- keys m]
-    return m
 
 readNumber :: String -> SourcePos -> Translator Integer
 readNumber "" _ = return 0
@@ -149,6 +133,35 @@ splitColon xs
     where
     continue n = fmap (first (take n xs ++)) (splitColon (drop n xs))
 
+warnAboutDuplicatePoints :: Property -> [Point] -> Translator [Point]
+warnAboutDuplicatePoints p ps = let ds = duplicatesOn id ps in do
+    when (not $ null ds) (tell [DuplicatePointsOmitted p ds])
+    return (nub ps)
+
+checkPointList :: (PTranslator [Point] -> PTranslator [[Point]]) -> (PTranslator Point -> PTranslator [Point])
+checkPointList listType a p = listType (mayBeCompoundPoint a) p >>= warnAboutDuplicatePoints p . concat
+-- }}}
+-- low-level {{{
+consume :: String -> Translator (Maybe Property)
+consume s = do
+    (v, rest) <- gets (partition ((== s) . name) . rootLabel)
+    modify (\s -> s { rootLabel = rest })
+    return (listToMaybe v)
+
+consumeSingle :: String -> Translator (Maybe Property)
+consumeSingle s = do
+    maybeProperty <- consume s
+    case maybeProperty of
+        Just (Property { values = (_:_:_) }) -> dieWithJust ExtraPropertyValues maybeProperty
+        _ -> return maybeProperty
+
+unknownProperties :: Translator (Map String [[Word8]])
+unknownProperties = do
+    m <- gets (fromList . map (name &&& values) . rootLabel)
+    tell [PreservingUnknownProperty name | name <- keys m]
+    return m
+-- }}}
+-- PTranslators and combinators {{{
 number :: PTranslator Integer
 number p@(Property { values = v:_ })
     | enum '.' `elem` v = dieWith BadlyFormattedValue p
@@ -188,10 +201,15 @@ elistOf :: PTranslator a -> PTranslator [a]
 elistOf _ (Property { values = [[]] }) = return []
 elistOf a p = listOf a p
 
-mayBeCompoundPoint, listOfPoint :: PTranslator Point -> PTranslator [Point]
+mayBeCompoundPoint, listOfPoint, elistOfPoint :: PTranslator Point -> PTranslator [Point]
 mayBeCompoundPoint a p@(Property { values = v:_ }) = case splitColon v of
     Nothing -> fmap return $ a p
-    Just {} -> fmap range  $ compose a a p
+    Just {} -> do
+        pointRange <- compose a a p { values = [v] }
+        when (uncurry (==) pointRange) (tell [PointSpecifiedAsPointRange p])
+        return (range pointRange)
 
-listOfPoint = fmap concat . listOf . mayBeCompoundPoint
+listOfPoint  = checkPointList listOf
+elistOfPoint = checkPointList elistOf
+-- }}}
 -- }}}
