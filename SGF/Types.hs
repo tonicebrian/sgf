@@ -5,11 +5,10 @@ module SGF.Types (
     GameType(..),
     VariationType(..),
     AutoMarkup,
-    Game(..),
+    Header(..),
     Emphasis(..),
     Color(..),
-    GameNode(..),
-    GameHeader(..)
+    Game(..)
 ) where
 
 import Data.List
@@ -47,16 +46,14 @@ instance Enum GameType where
 data VariationType = Children | Siblings deriving (Eq, Ord, Enum, Show, Read)
 type AutoMarkup    = Bool
 
-data Game = Game {
+data Header = Header {
     application     :: Maybe (Application, Version),
     gameType        :: GameType,
     variationType   :: Maybe (VariationType, AutoMarkup),
-    size            :: Maybe (Integer, Integer),
-    header          :: GameHeader,
-    game            :: Tree GameNode
-    } deriving (Eq, Show, Read)
+    size            :: Maybe (Integer, Integer)
+    } deriving (Eq, Ord, Show, Read)
 
 data Emphasis   = Normal | Strong deriving (Eq, Ord, Enum, Show, Read)
 data Color      = Black  | White  deriving (Eq, Ord, Enum, Show, Read)
-data GameNode   = GameNode   deriving (Eq, Ord, Show, Read) -- TODO
-data GameHeader = GameHeader deriving (Eq, Ord, Show, Read) -- TODO
+
+data Game = Game deriving (Eq, Ord, Show, Read) -- TODO

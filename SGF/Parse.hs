@@ -12,12 +12,12 @@ import Data.Char
 import Data.Encoding
 import Data.Tree
 import Text.Parsec hiding (newline)
+import Text.Parsec.Pos (newPos)
 
 import SGF.Parse.Encodings
 import SGF.Parse.Raw hiding (gameTree, collection)
 import SGF.Parse.Util
-import SGF.Types hiding (Game(..))
-import SGF.Types (Game(Game))
+import SGF.Types hiding (Header(..))
 import qualified SGF.Parse.Raw as Raw
 import qualified SGF.Types     as T
 -- }}}
@@ -36,19 +36,26 @@ gameTree = do
     gam <- gameType
     var <- variationType
     siz <- size gam
-    return (Game app gam var siz GameHeader (Node GameNode []))
+    return (T.Header app gam var siz)
 -- }}}
 -- game header information {{{
 getFormat   :: Translator Integer
 getEncoding :: Translator DynEncoding
 parseHeader :: Translator Header
-getFormat   = consumeSingle "FF" >>= maybe (return 1) number
+
+getFormat   = do
+    prop <- consumeSingle "FF"
+    ff   <- maybe (return 1) number prop
+    when (ff /= 4) (dieWithPos FormatUnsupported (maybe (newPos "FF_missing" 1 1) position prop))
+    return ff
+
 getEncoding = do
     ws <- consumeSingle "CA"
     case maybe [encodingFromString "latin1"] (guessEncoding . head . values) ws of
         [encoding]  -> return encoding
         []          -> dieWithJust UnknownEncoding   ws
         _           -> dieWithJust AmbiguousEncoding ws -- pretty much guaranteed not to happen
+
 parseHeader = liftM2 Header getFormat getEncoding
 
 application         :: Header -> Translator (Maybe (String, String))

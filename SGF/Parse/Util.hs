@@ -11,7 +11,7 @@ import Data.Encoding
 import Data.Function
 import Data.List
 import Data.Maybe
-import Data.Map (Map(..), fromList)
+import Data.Map (Map(..), fromList, keys)
 import Data.Ord
 import Data.Tree
 import Data.Word
@@ -19,7 +19,7 @@ import Text.Parsec hiding (State(..), newline)
 
 import SGF.Parse.Encodings
 import SGF.Parse.Raw
-import SGF.Types
+import SGF.Types hiding (Header(..))
 -- }}}
 -- new types: Header, Error, Warning, State, Translator a, PTranslator a {{{
 data Header = Header {
@@ -61,6 +61,8 @@ data Warning
     = DuplicatePropertyOmitted          Property
     | SquareSizeSpecifiedAsRectangle    SourcePos
     | DanglingEscapeCharacterOmitted    SourcePos
+    | PropValueOmittedForNoneProperty   Property
+    | PreservingUnknownProperty         String
     deriving (Eq, Ord, Show)
 
 type State = Tree [Property]
@@ -99,9 +101,13 @@ consumeSingle s = do
         _ -> return maybeProperty
 
 unknownProperties :: Translator (Map String [[Word8]])
-unknownProperties = gets (fromList . map (name &&& values) . rootLabel)
+unknownProperties = do
+    m <- gets (fromList . map (name &&& values) . rootLabel)
+    tell [PreservingUnknownProperty name | name <- keys m]
+    return m
 
 readNumber :: String -> SourcePos -> Translator Integer
+readNumber "" _ = return 0
 readNumber s pos | all isDigit s = return (read s)
                  | otherwise     = dieWithPos BadlyFormattedValue pos
 
@@ -143,12 +149,21 @@ splitColon xs
     continue n = fmap (first (take n xs ++)) (splitColon (drop n xs))
 
 number :: PTranslator Integer
-number (Property { values = v:_, position = pos })
+number p@(Property { values = v:_ })
+    | enum '.' `elem` v = dieWith BadlyFormattedValue p
+    | otherwise         = fmap floor (real p)
+
+real :: PTranslator Rational
+real (Property { values = v:_, position = pos })
     | [enum '+'] `isPrefixOf` v = result 1
     | [enum '-'] `isPrefixOf` v = fmap negate (result 1)
     | otherwise                 = result 0
     where
-    result n = readNumber (map enum $ drop n v) pos
+    split  i = second (drop 1) . break (== '.') . map enum . drop i $ v
+    result i = let (n, d) = split i in do
+        whole <- readNumber n pos
+        fract <- readNumber d pos
+        return (fromInteger whole + fromInteger fract / 10 ^ length d)
 
 simple :: Header -> PTranslator String
 text   :: Header -> PTranslator String
@@ -156,8 +171,19 @@ text   :: Header -> PTranslator String
 simple = decodeAndDescape ' '
 text   = decodeAndDescape '\n'
 
+none :: PTranslator ()
+none (Property { values = [[]] }) = return ()
+none p = tell [PropValueOmittedForNoneProperty p]
+
 compose :: PTranslator a -> PTranslator b -> PTranslator (a, b)
 compose a b p@(Property { values = vs }) = case splitColons vs of
     Nothing       -> dieWith BadlyFormattedValue p
     Just (as, bs) -> liftM2 (,) (a p { values = as }) (b p { values = bs })
+
+listOf :: PTranslator a -> PTranslator [a]
+listOf a p@(Property { values = vs }) = mapM a [p { values = [v] } | v <- vs]
+
+elistOf :: PTranslator a -> PTranslator [a]
+elistOf _ (Property { values = [[]] }) = return []
+elistOf a p = listOf a p
 -- }}}
