@@ -1,5 +1,5 @@
 module SGF (
-    module SGF.Types
+    module SGF.Types,
     module SGF.Parse
 ) where
 
@@ -9,4 +9,10 @@ module SGF (
 -- specification.
 
 import SGF.Types
-import SGF.Parse
+import SGF.Parse (collection)
+
+-- TODO:
+-- * support the rest of the SGF format ;-)
+-- * clean up exports and imports as much as possible
+-- * documentation for usage
+-- * commenting/documentation for hacking

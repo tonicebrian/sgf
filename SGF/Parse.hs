@@ -17,7 +17,8 @@ import Text.Parsec.Pos (newPos)
 import SGF.Parse.Encodings
 import SGF.Parse.Raw hiding (gameTree, collection)
 import SGF.Parse.Util
-import SGF.Types hiding (Header(..))
+import SGF.Types hiding (GeneralHeader(..),Header(..))
+import SGF.Types (GeneralHeader(GeneralHeader))
 import qualified SGF.Parse.Raw as Raw
 import qualified SGF.Types     as T
 -- }}}
@@ -36,7 +37,7 @@ gameTree = do
     gam <- gameType
     var <- variationType
     siz <- size gam
-    return (T.Header app gam var siz)
+    return (T.Header (GeneralHeader app gam var siz) Nothing)
 -- }}}
 -- game header information {{{
 getFormat   :: Translator Integer
