@@ -188,8 +188,10 @@ elistOf :: PTranslator a -> PTranslator [a]
 elistOf _ (Property { values = [[]] }) = return []
 elistOf a p = listOf a p
 
-mayBeCompoundPoint :: PTranslator Point -> PTranslator [Point]
+mayBeCompoundPoint, listOfPoint :: PTranslator Point -> PTranslator [Point]
 mayBeCompoundPoint a p@(Property { values = v:_ }) = case splitColon v of
     Nothing -> fmap return $ a p
     Just {} -> fmap range  $ compose a a p
+
+listOfPoint = fmap concat . listOf . mayBeCompoundPoint
 -- }}}
