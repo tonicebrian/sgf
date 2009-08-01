@@ -36,6 +36,8 @@ type AutoMarkup       = Bool
 data VariationType    = Children  | Siblings deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data Emphasis         = Normal    | Strong   deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data Color            = Black     | White    deriving (Eq, Ord, Show, Read, Enum, Bounded)
+data RankScale        = Kyu       | Dan      deriving (Eq, Ord, Show, Read, Enum, Bounded)
+data Certainty        = Uncertain | Certain  deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data InitialPosition  = Beginning | End      deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data ViewerSetting    = Tried | Marked | LastMove | Headings | Lock             deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data InitialPlacement = Standard | ScrambledEggs | Parachute | Gemma | Custom   deriving (Eq, Ord, Show, Read, Enum, Bounded)
@@ -44,6 +46,7 @@ data MinorVariation   = Edgeless | Superprong | OtherMinorVariation String      
 data WinType          = Score Rational | Resign | Time | Forfeit                deriving (Eq, Ord, Show, Read)
 data GameResult       = Draw | Void | Unknown | Win Color WinType               deriving (Eq, Ord, Show, Read)
 data Round            = FormattedRound Integer String | UnformattedRound String deriving (Eq, Ord, Show, Read)
+data Rank             = Ranked RankScale (Maybe Certainty) | OtherRank String   deriving (Eq, Ord, Show, Read)
 
 data MatchInfo = Length           Integer
                | GameNumber       Integer
@@ -80,8 +83,8 @@ data Header = Header {
     } deriving (Eq, Ord, Show, Read)
 
 data GeneralGameInfo = GeneralGameInfo {
-    rankBlack       :: Maybe String,
-    rankWhite       :: Maybe String,
+    rankBlack       :: Maybe Rank,
+    rankWhite       :: Maybe Rank,
     teamNameBlack   :: Maybe String,
     teamNameWhite   :: Maybe String,
     playerNameBlack :: Maybe String,
@@ -93,9 +96,9 @@ data GeneralGameInfo = GeneralGameInfo {
     date            :: Maybe [PartialDate],
     context         :: Maybe String,
     location        :: Maybe String,
-    eventName       :: Maybe String,
+    event           :: Maybe String,
     round           :: Maybe Round,
-    gameName        :: Maybe String,
+    game            :: Maybe String,
     opening         :: Maybe String,
     overtime        :: Maybe String,
     ruleset         :: Maybe RuleSet,

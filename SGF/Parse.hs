@@ -16,9 +16,8 @@ import Text.Parsec.Pos (newPos)
 
 import SGF.Parse.Encodings
 import SGF.Parse.Raw hiding (gameTree, collection)
+import SGF.Types (GameType(..), VariationType, AutoMarkup)
 import SGF.Parse.Util
-import SGF.Types hiding (GeneralHeader(..),Header(..))
-import SGF.Types (GeneralHeader(GeneralHeader))
 import qualified SGF.Parse.Raw as Raw
 import qualified SGF.Types     as T
 -- }}}
@@ -37,7 +36,8 @@ gameTree = do
     gam <- gameType
     var <- variationType
     siz <- size gam
-    return (T.Header (GeneralHeader app gam var siz) Nothing)
+    inf <- generalGameInfo hea
+    return (T.Header (T.GeneralHeader app gam var siz) Nothing, inf)
 -- }}}
 -- game header information {{{
 getFormat   :: Translator Integer
@@ -71,10 +71,10 @@ gameType            = do
         then return (enum gameType)
         else dieWithJust OutOfBounds property
 variationType = consumeSingle "ST" >>= \p -> transMap (number >=> variationType' p) p where
-    variationType' property 0 = return (Children, True)
-    variationType' property 1 = return (Siblings, True)
-    variationType' property 2 = return (Children, False)
-    variationType' property 3 = return (Siblings, False)
+    variationType' property 0 = return (T.Children, True )
+    variationType' property 1 = return (T.Siblings, True )
+    variationType' property 2 = return (T.Children, False)
+    variationType' property 3 = return (T.Siblings, False)
     variationType' property _ = dieWithJust OutOfBounds property
 size gameType = do
     property <- consumeSingle "SZ"
@@ -91,6 +91,30 @@ size gameType = do
     where
     invalid       t m n   = or [t == Go && (m > 52 || n > 52), m < 1, n < 1]
     checkValidity t m n p = when (invalid t m n) (dieWithJust OutOfBounds p) >> return (Just (m, n))
+-- }}}
+-- game-info properties {{{
+emptyGeneralGameInfo = T.GeneralGameInfo Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing -- lololololol
+simpleGameInfo = [
+    ("AN", \i s -> i { T.annotator        = s }),
+    ("BT", \i s -> i { T.teamNameBlack    = s }),
+    ("CP", \i s -> i { T.copyright        = s }),
+    ("EV", \i s -> i { T.event            = s }),
+    ("GN", \i s -> i { T.game             = s }),
+    ("GC", \i s -> i { T.context          = s }),
+    ("ON", \i s -> i { T.opening          = s }),
+    ("OT", \i s -> i { T.overtime         = s }),
+    ("PB", \i s -> i { T.playerNameBlack  = s }),
+    ("PC", \i s -> i { T.location         = s }),
+    ("PW", \i s -> i { T.playerNameWhite  = s }),
+    ("SO", \i s -> i { T.source           = s }),
+    ("US", \i s -> i { T.user             = s }),
+    ("WT", \i s -> i { T.teamNameWhite    = s })
+    ]
+
+consumeSimpleGameInfo header gameInfo (propertyName, update) =
+    fmap (update gameInfo) $ transMap (simple header) =<< consumeSingle propertyName
+generalGameInfo header =
+    foldM (consumeSimpleGameInfo header) emptyGeneralGameInfo simpleGameInfo
 -- }}}
 -- game-specific stuff {{{
 defaultSize = [
