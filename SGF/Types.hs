@@ -36,17 +36,17 @@ type AutoMarkup       = Bool
 data VariationType    = Children  | Siblings deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data Emphasis         = Normal    | Strong   deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data Color            = Black     | White    deriving (Eq, Ord, Show, Read, Enum, Bounded)
-data RankScale        = Kyu       | Dan      deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data Certainty        = Uncertain | Certain  deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data InitialPosition  = Beginning | End      deriving (Eq, Ord, Show, Read, Enum, Bounded)
+data RankScale        = Kyu | Dan | Pro      deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data ViewerSetting    = Tried | Marked | LastMove | Headings | Lock             deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data InitialPlacement = Standard | ScrambledEggs | Parachute | Gemma | Custom   deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data MajorVariation   = Full | Fast | Kids                                      deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data MinorVariation   = Edgeless | Superprong | OtherMinorVariation String      deriving (Eq, Ord, Show, Read)
-data WinType          = Score Rational | Resign | Time | Forfeit                deriving (Eq, Ord, Show, Read)
+data WinType          = Score Rational | Resign | Time | Forfeit | OtherWinType deriving (Eq, Ord, Show, Read)
 data GameResult       = Draw | Void | Unknown | Win Color WinType               deriving (Eq, Ord, Show, Read)
-data Round            = FormattedRound Integer String | UnformattedRound String deriving (Eq, Ord, Show, Read)
-data Rank             = Ranked RankScale (Maybe Certainty) | OtherRank String   deriving (Eq, Ord, Show, Read)
+data Round            = FormattedRound Integer String | OtherRound String       deriving (Eq, Ord, Show, Read)
+data Rank             = Ranked Integer RankScale (Maybe Certainty) | OtherRank String       deriving (Eq, Ord, Show, Read)
 
 data MatchInfo = Length           Integer
                | GameNumber       Integer
@@ -105,6 +105,8 @@ data GeneralGameInfo = GeneralGameInfo {
     timeLimit       :: Maybe Rational,
     result          :: Maybe GameResult
     } deriving (Eq, Ord, Show, Read)
+
+emptyGeneralGameInfo = GeneralGameInfo Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing -- lololololol
 
 data SpecificGameInfo
     = GameInfoGo                { handicap :: Maybe Integer, komi :: Maybe Rational }

@@ -9,6 +9,8 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Writer
 import Data.Char
+import Data.List
+import Data.Maybe
 import Data.Encoding
 import Data.Tree
 import Text.Parsec hiding (newline)
@@ -16,7 +18,7 @@ import Text.Parsec.Pos (newPos)
 
 import SGF.Parse.Encodings
 import SGF.Parse.Raw hiding (gameTree, collection)
-import SGF.Types (GameType(..), VariationType, AutoMarkup)
+import SGF.Types     hiding (GeneralGameInfo(..), GeneralHeader(..), GameInfo(..), Header(..))
 import SGF.Parse.Util
 import qualified SGF.Parse.Raw as Raw
 import qualified SGF.Types     as T
@@ -29,6 +31,8 @@ translate trans state = case runStateT (runWriterT trans) state of
     Left e                       -> setPosition (errorPosition e) >> fail (show e)
     Right ((a, warnings), _)     -> return (a, warnings)
 
+-- TODO: delete the commented-out test code
+--collection = mapM (translate (consume "AAA" >>= transMap real)) =<< Raw.collection
 collection = second concat . unzip <$> (mapM (translate gameTree) =<< Raw.collection)
 gameTree = do
     hea <- parseHeader
@@ -38,6 +42,10 @@ gameTree = do
     siz <- size gam
     inf <- generalGameInfo hea
     return (T.Header (T.GeneralHeader app gam var siz) Nothing, inf)
+
+-- TODO: delete "test" and "stupid"
+test = mapM (translate (consume "AAA" >>= transMap (elistOfPoint stupid))) =<< Raw.collection
+stupid (Property { values = (a:b:_):_ }) = return (enum a - enum 'a', enum b - enum 'a')
 -- }}}
 -- game header information {{{
 getFormat   :: Translator Integer
@@ -93,7 +101,13 @@ size gameType = do
     checkValidity t m n p = when (invalid t m n) (dieWithJust OutOfBounds p) >> return (Just (m, n))
 -- }}}
 -- game-info properties {{{
-emptyGeneralGameInfo = T.GeneralGameInfo Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing -- lololololol
+generalGameInfo header =
+    foldM (consumeSimpleGameInfo header) emptyGeneralGameInfo simpleGameInfo            >>=
+    consumeUpdateGameInfo      rank   (\g v -> g { T.rankBlack = v }) "BR" header       >>=
+    consumeUpdateGameInfo      rank   (\g v -> g { T.rankWhite = v }) "WR" header       >>=
+    consumeUpdateGameInfoMaybe result (\g v -> g { T.result    = v }) "RE" header       >>=
+    timeLimit
+
 simpleGameInfo = [
     ("AN", \i s -> i { T.annotator        = s }),
     ("BT", \i s -> i { T.teamNameBlack    = s }),
@@ -111,10 +125,46 @@ simpleGameInfo = [
     ("WT", \i s -> i { T.teamNameWhite    = s })
     ]
 
-consumeSimpleGameInfo header gameInfo (propertyName, update) =
-    fmap (update gameInfo) $ transMap (simple header) =<< consumeSingle propertyName
-generalGameInfo header =
-    foldM (consumeSimpleGameInfo header) emptyGeneralGameInfo simpleGameInfo
+consumeSimpleGameInfo h g (p, u) = consumeUpdateGameInfo id u p h g
+consumeUpdateGameInfo            = consumeUpdateGameInfoMaybe . (return .)
+consumeUpdateGameInfoMaybe fromString update property header gameInfo = do
+    maybeProp   <- consumeSingle property
+    maybeString <- transMap (simple header) maybeProp
+    case (maybeProp, maybeString >>= fromString) of
+        (Nothing, _) -> return gameInfo
+        (_, Nothing) -> dieWithJust BadlyFormattedValue maybeProp
+        (_, v)       -> return (update gameInfo v)
+
+abbreviateList xs = xs >>= \(n, v) -> [(n, v), (take 1 n, v)]
+-- TODO: can we unify this with the other implementation of reading a rational?
+readRational s = liftM3 (\s n d -> s * (fromInteger n + d)) maybeSign maybeNum maybeDen where
+    (sign, rest)       = span (`elem` "+-") s
+    (numerator, rest') = span isDigit rest
+    denominator'       = drop 1 rest' ++ "0"
+    denominator        = fromInteger (read denominator') / 10 ^ length denominator'
+
+    maybeSign = lookup sign [("", 1), ("+", 1), ("-", -1)]
+    maybeNum  = listToMaybe numerator >> return (read numerator)
+    maybeDen  = guard (take 1 rest' `isPrefixOf` "." && all isDigit denominator') >> return denominator
+
+rank s = fromMaybe (OtherRank s) maybeRanked where
+    (rank, rest)        = span isDigit s
+    (scale, certainty)  = span isAlpha rest
+    maybeRank           = listToMaybe rank >> return (read rank)
+    maybeScale          = lookup (map toLower scale) scales
+    maybeCertainty      = lookup certainty certainties
+    maybeRanked = liftM3 Ranked maybeRank maybeScale maybeCertainty
+    certainties = [("", Nothing), ("?", Just Uncertain), ("*", Just Certain)]
+    scales      = abbreviateList [("kyu", Kyu), ("dan", Dan), ("pro", Pro)]
+
+result (c:'+':score) = liftM2 Win maybeColor maybeWinType where
+    maybeColor   = lookup (toLower c) [('b', Black), ('w', White)]
+    maybeWinType = lookup (map toLower score) winTypes `mplus` fmap Score (readRational score)
+    winTypes     = abbreviateList [("", OtherWinType), ("forfeit", Forfeit), ("time", Time), ("resign", Resign)]
+
+result s = lookup (map toLower s) [("0", Draw), ("draw", Draw), ("void", Void), ("?", Unknown)]
+
+timeLimit gameInfo = fmap (\v -> gameInfo { T.timeLimit = v }) (transMap real =<< consumeSingle "TM")
 -- }}}
 -- game-specific stuff {{{
 defaultSize = [
