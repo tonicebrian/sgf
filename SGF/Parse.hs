@@ -15,8 +15,9 @@ import Data.Maybe
 import Data.Encoding
 import Data.Time.Calendar
 import Data.Tree
+import Prelude     hiding (round)
 import Text.Parsec hiding (newline)
-import Text.Parsec.Pos (newPos)
+import Text.Parsec.Pos    (newPos)
 
 import SGF.Parse.Encodings
 import SGF.Parse.Raw hiding (gameTree, collection)
@@ -107,6 +108,7 @@ generalGameInfo header =
         foldM (consumeSimpleGameInfo header) emptyGeneralGameInfo simpleGameInfo
     >>= consumeUpdateGameInfo      rank   (\g v -> g { T.rankBlack = v }) "BR" header
     >>= consumeUpdateGameInfo      rank   (\g v -> g { T.rankWhite = v }) "WR" header
+    >>= consumeUpdateGameInfo      round  (\g v -> g { T.round     = v }) "RO" header
     >>= consumeUpdateGameInfoMaybe result (\g v -> g { T.result    = v }) "RE" header
     >>= consumeUpdateGameInfoMaybe date   (\g v -> g { T.date      = v }) "DT" header
     >>= warnClipDate
@@ -210,6 +212,13 @@ clipDate (Day { year = y, month = m, day = d }) = let m' = clipDate (Month y m) 
 warnClipDate gameInfo@(T.GeneralGameInfo { T.date = d }) = let d' = fmap (map clipDate) d in do
     when (d /= d') (tell [InvalidDatesClipped (fromJust d)])
     return gameInfo { T.date = d' }
+
+round s = case words s of
+    [roundNumber@(_:_)]                | all isDigit roundNumber
+        -> SimpleRound (read roundNumber)
+    [roundNumber@(_:_), '(':roundType] | all isDigit roundNumber && last roundType == ')'
+        -> FormattedRound (read roundNumber) (init roundType)
+    _   -> OtherRound s
 -- }}}
 -- game-specific stuff {{{
 defaultSize = [

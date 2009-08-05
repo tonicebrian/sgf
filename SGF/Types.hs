@@ -45,8 +45,12 @@ data MajorVariation   = Full | Fast | Kids                                      
 data MinorVariation   = Edgeless | Superprong | OtherMinorVariation String      deriving (Eq, Ord, Show, Read)
 data WinType          = Score Rational | Resign | Time | Forfeit | OtherWinType deriving (Eq, Ord, Show, Read)
 data GameResult       = Draw | Void | Unknown | Win Color WinType               deriving (Eq, Ord, Show, Read)
-data Round            = FormattedRound Integer String | OtherRound String       deriving (Eq, Ord, Show, Read)
 data Rank             = Ranked Integer RankScale (Maybe Certainty) | OtherRank String       deriving (Eq, Ord, Show, Read)
+
+data Round = SimpleRound    Integer
+           | FormattedRound Integer String
+           | OtherRound             String
+    deriving (Eq, Ord, Show, Read)
 
 data MatchInfo = Length           Integer
                | GameNumber       Integer
