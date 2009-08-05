@@ -10,8 +10,10 @@ import Control.Monad.State
 import Control.Monad.Writer
 import Data.Char
 import Data.List
+import Data.List.Split
 import Data.Maybe
 import Data.Encoding
+import Data.Time.Calendar
 import Data.Tree
 import Text.Parsec hiding (newline)
 import Text.Parsec.Pos (newPos)
@@ -102,11 +104,12 @@ size gameType = do
 -- }}}
 -- game-info properties {{{
 generalGameInfo header =
-    foldM (consumeSimpleGameInfo header) emptyGeneralGameInfo simpleGameInfo            >>=
-    consumeUpdateGameInfo      rank   (\g v -> g { T.rankBlack = v }) "BR" header       >>=
-    consumeUpdateGameInfo      rank   (\g v -> g { T.rankWhite = v }) "WR" header       >>=
-    consumeUpdateGameInfoMaybe result (\g v -> g { T.result    = v }) "RE" header       >>=
-    timeLimit
+        foldM (consumeSimpleGameInfo header) emptyGeneralGameInfo simpleGameInfo
+    >>= consumeUpdateGameInfo      rank   (\g v -> g { T.rankBlack = v }) "BR" header
+    >>= consumeUpdateGameInfo      rank   (\g v -> g { T.rankWhite = v }) "WR" header
+    >>= consumeUpdateGameInfoMaybe result (\g v -> g { T.result    = v }) "RE" header
+    >>= timeLimit
+    >>= date header
 
 simpleGameInfo = [
     ("AN", \i s -> i { T.annotator        = s }),
@@ -165,6 +168,55 @@ result (c:'+':score) = liftM2 Win maybeColor maybeWinType where
 result s = lookup (map toLower s) [("0", Draw), ("draw", Draw), ("void", Void), ("?", Unknown)]
 
 timeLimit gameInfo = fmap (\v -> gameInfo { T.timeLimit = v }) (transMap real =<< consumeSingle "TM")
+
+date header gameInfo = do
+    dtProp     <- consumeSingle "DT"
+    dateString <- transMap (simple header) dtProp
+    case (dtProp, dateString >>= datesFromString) of
+        (Nothing, _) -> return gameInfo
+        (_, Nothing) -> dieWithJust BadlyFormattedValue dtProp
+        (_, Just v') -> do
+            let v = map clipDate v'
+            when (v /= v') (tell [InvalidDatesClipped v'])
+            return gameInfo { T.date = Just v' }
+
+datesFromString = expect [] . splitWhen (== ',') where
+    expect parsers [] = return []
+    expect parsers (pd:pds) = do
+        parsed <- msum . sequence ([parseYMD, parseYM, parseY] ++ parsers) . splitWhen (== '-') $ pd
+        liftM (parsed:) . ($ pds) $ case parsed of
+            Year  {}                        -> expect []
+            Month { year = y }              -> expect [parseMD y, parseM y]
+            Day   { year = y, month = m }   -> expect [parseMD y, parseD y m]
+
+    parseYMD    [y, m, d] = liftM3 Day   (checkY y) (checkMD m) (checkMD d)
+    parseYMD    _         = mzero
+    parseYM     [y, m   ] = liftM2 Month (checkY y) (checkMD m)
+    parseYM     _         = mzero
+    parseY      [y      ] = liftM  Year  (checkY y)
+    parseY      _         = mzero
+    parseMD y   [   m, d] = liftM2 (Day y)           (checkMD m) (checkMD d)
+    parseMD _   _         = mzero
+    parseM  y   [   m   ] = liftM  (Month y)         (checkMD m)
+    parseM  _   _         = mzero
+    parseD  y m [      d] = liftM  (Day y m)                     (checkMD d)
+    parseD  _ _ _         = mzero
+
+    checkY  y@[_, _, _, _]  = readM y
+    checkY  _               = mzero
+    checkMD md@[_, _]       = readM md
+    checkMD _               = mzero
+    readM = listToMaybe . map fst . filter (null . snd) . reads
+
+clipDate (y@Year  {}) = Year . min 9999 . max 0 . year $ y
+clipDate (Month { year = y, month = m }) = Month {
+    year  = year . clipDate . Year $ y,
+    month = min 12 . max 1 $ m
+    }
+clipDate (Day { year = y, month = m, day = d }) = let m' = clipDate (Month y m) in Day {
+    year = year m', month = month m',
+    day  = max 1 . min (fromIntegral (gregorianMonthLength (year m') (fromIntegral (month m')))) $ d
+    }
 -- }}}
 -- game-specific stuff {{{
 defaultSize = [

@@ -66,6 +66,7 @@ data Warning
     | PreservingUnknownProperty         String
     | PointSpecifiedAsPointRange        Property
     | DuplicatePointsOmitted            Property [Point]
+    | InvalidDatesClipped               [PartialDate]
     deriving (Eq, Ord, Show)
 
 type State = Tree [Property]
