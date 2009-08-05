@@ -189,24 +189,23 @@ datesFromString = expect [] . splitWhen (== ',') where
             Month { year = y }              -> expect [parseMD y, parseM y]
             Day   { year = y, month = m }   -> expect [parseMD y, parseD y m]
 
-    parseYMD    [y, m, d] = liftM3 Day   (checkY y) (checkMD m) (checkMD d)
-    parseYMD    _         = mzero
-    parseYM     [y, m   ] = liftM2 Month (checkY y) (checkMD m)
-    parseYM     _         = mzero
-    parseY      [y      ] = liftM  Year  (checkY y)
-    parseY      _         = mzero
-    parseMD y   [   m, d] = liftM2 (Day y)           (checkMD m) (checkMD d)
-    parseMD _   _         = mzero
-    parseM  y   [   m   ] = liftM  (Month y)         (checkMD m)
-    parseM  _   _         = mzero
-    parseD  y m [      d] = liftM  (Day y m)                     (checkMD d)
-    parseD  _ _ _         = mzero
+    ensure p x = guard (p x) >> return x
+    hasLength n xs = n >= 0 && hasLength' n xs where
+        hasLength' n []     = n == 0
+        hasLength' 0 (x:xs) = False
+        hasLength' n (x:xs) = hasLength' (n-1) xs
+    ensureLength = ensure . hasLength
 
-    checkY  y@[_, _, _, _]  = readM y
-    checkY  _               = mzero
-    checkMD md@[_, _]       = readM md
-    checkMD _               = mzero
-    readM = listToMaybe . map fst . filter (null . snd) . reads
+    parseYMD    ss = ensureLength 3 ss >>= \[y, m, d] -> liftM3 Day   (checkY y) (checkMD m) (checkMD d)
+    parseYM     ss = ensureLength 2 ss >>= \[y, m   ] -> liftM2 Month (checkY y) (checkMD m)
+    parseY      ss = ensureLength 1 ss >>= \[y      ] -> liftM  Year  (checkY y)
+    parseMD y   ss = ensureLength 2 ss >>= \[   m, d] -> liftM2 (Day y)          (checkMD m) (checkMD d)
+    parseM  y   ss = ensureLength 1 ss >>= \[   m   ] -> liftM  (Month y)        (checkMD m)
+    parseD  y m ss = ensureLength 1 ss >>= \[      d] -> liftM  (Day y m)                    (checkMD d)
+
+    checkY  y  = ensureLength 4 y  >>= readM
+    checkMD md = ensureLength 2 md >>= readM
+    readM      = listToMaybe . map fst . filter (null . snd) . reads
 
 clipDate (y@Year  {}) = Year . min 9999 . max 0 . year $ y
 clipDate (Month { year = y, month = m }) = Month {
