@@ -7,6 +7,11 @@ import Control.Throws
 import Data.Encoding
 import Data.Word
 
+{- TODO: a workaround in case encodingFromStringExplicit isn't available by the time you want to publish:
+import Test.ChasingBottoms.IsBottom
+encodingFromStringExplicit s = if isBottom enc then Nothing else Just enc where enc = encodingFromString s
+-}
+
 type MyIHateGHC = MyEither DecodingException (String, [Word8])
 newtype MyEither a b = MyEither (Either a b) deriving (Throws a)
 
