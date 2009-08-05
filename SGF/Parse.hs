@@ -108,8 +108,9 @@ generalGameInfo header =
     >>= consumeUpdateGameInfo      rank   (\g v -> g { T.rankBlack = v }) "BR" header
     >>= consumeUpdateGameInfo      rank   (\g v -> g { T.rankWhite = v }) "WR" header
     >>= consumeUpdateGameInfoMaybe result (\g v -> g { T.result    = v }) "RE" header
+    >>= consumeUpdateGameInfoMaybe date   (\g v -> g { T.date      = v }) "DT" header
+    >>= warnClipDate
     >>= timeLimit
-    >>= date header
 
 simpleGameInfo = [
     ("AN", \i s -> i { T.annotator        = s }),
@@ -169,18 +170,7 @@ result s = lookup (map toLower s) [("0", Draw), ("draw", Draw), ("void", Void), 
 
 timeLimit gameInfo = fmap (\v -> gameInfo { T.timeLimit = v }) (transMap real =<< consumeSingle "TM")
 
-date header gameInfo = do
-    dtProp     <- consumeSingle "DT"
-    dateString <- transMap (simple header) dtProp
-    case (dtProp, dateString >>= datesFromString) of
-        (Nothing, _) -> return gameInfo
-        (_, Nothing) -> dieWithJust BadlyFormattedValue dtProp
-        (_, Just v') -> do
-            let v = map clipDate v'
-            when (v /= v') (tell [InvalidDatesClipped v'])
-            return gameInfo { T.date = Just v' }
-
-datesFromString = expect [] . splitWhen (== ',') where
+date = expect [] . splitWhen (== ',') where
     expect parsers [] = return []
     expect parsers (pd:pds) = do
         parsed <- msum . sequence ([parseYMD, parseYM, parseY] ++ parsers) . splitWhen (== '-') $ pd
@@ -216,6 +206,10 @@ clipDate (Day { year = y, month = m, day = d }) = let m' = clipDate (Month y m) 
     year = year m', month = month m',
     day  = max 1 . min (fromIntegral (gregorianMonthLength (year m') (fromIntegral (month m')))) $ d
     }
+
+warnClipDate gameInfo@(T.GeneralGameInfo { T.date = d }) = let d' = fmap (map clipDate) d in do
+    when (d /= d') (tell [InvalidDatesClipped (fromJust d)])
+    return gameInfo { T.date = d' }
 -- }}}
 -- game-specific stuff {{{
 defaultSize = [
