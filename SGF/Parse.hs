@@ -230,29 +230,29 @@ defaultSize = [
     (Gess           , (20, 20))
     ]
 
-rulesetLookup rs  = flip lookup rs . map toLower
-rulesetGo         = rulesetLookup [
+ruleSetLookup rs  = flip lookup rs . map toLower
+ruleSetGo         = ruleSetLookup [
     ("aga"                      , AGA),
     ("goe"                      , GOE),
     ("chinese"                  , Chinese),
     ("japanese"                 , Japanese),
     ("nz"                       , NewZealand)
     ]
-rulesetBackgammon = rulesetLookup [
+ruleSetBackgammon = ruleSetLookup [
     ("crawford"                 , Crawford),
     ("crawford:crawfordgame"    , CrawfordGame),
     ("jacoby"                   , Jacoby)
     ]
-rulesetOcti s = case break (== ':') s of
+ruleSetOcti s = case break (== ':') s of
     (major, ':':minors) -> liftM  (flip OctiRuleSet (minorVariations minors       )) (majorVariation major        )
     (majorOrMinors, "") -> liftM  (flip OctiRuleSet []                             ) (majorVariation majorOrMinors)
                    `mplus` return (OctiRuleSet Full (minorVariations majorOrMinors))
     where
-    majorVariation      = rulesetLookup [("full", Full), ("fast", Fast), ("kids", Kids)]
-    minorVariation    s = fromMaybe (OtherMinorVariation s) . rulesetLookup [("edgeless", Edgeless), ("superprong", Superprong)] $ s
+    majorVariation      = ruleSetLookup [("full", Full), ("fast", Fast), ("kids", Kids)]
+    minorVariation    s = fromMaybe (OtherMinorVariation s) . ruleSetLookup [("edgeless", Edgeless), ("superprong", Superprong)] $ s
     minorVariations     = map minorVariation . splitWhen (== ',')
 
-ruleset read maybeDefault header = do
+ruleSet read maybeDefault header = do
     maybeRulesetString <- transMap (simple header) =<< consumeSingle "RU"
     return $ case (maybeRulesetString, maybeRulesetString >>= read) of
         (Nothing, _      ) -> fmap Known maybeDefault

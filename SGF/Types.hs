@@ -84,7 +84,7 @@ data Header = Header {
     specificHeader :: Maybe SpecificHeader
     } deriving (Eq, Ord, Show, Read)
 
-data GeneralGameInfo ruleset = GeneralGameInfo {
+data GeneralGameInfo ruleSet = GeneralGameInfo {
     rankBlack       :: Maybe Rank,
     rankWhite       :: Maybe Rank,
     teamNameBlack   :: Maybe String,
@@ -103,7 +103,7 @@ data GeneralGameInfo ruleset = GeneralGameInfo {
     game            :: Maybe String,
     opening         :: Maybe String,
     overtime        :: Maybe String,
-    ruleset         :: Maybe (RuleSet ruleset),
+    ruleSet         :: Maybe (RuleSet ruleSet),
     timeLimit       :: Maybe Rational,
     result          :: Maybe GameResult
     } deriving (Eq, Ord, Show, Read)
