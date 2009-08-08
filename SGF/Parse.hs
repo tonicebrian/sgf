@@ -21,7 +21,7 @@ import Text.Parsec.Pos    (newPos)
 
 import SGF.Parse.Encodings
 import SGF.Parse.Raw hiding (gameTree, collection)
-import SGF.Types     hiding (GeneralGameInfo(..), GeneralHeader(..), GameInfo(..), Header(..))
+import SGF.Types     hiding (GeneralGameInfo(..), GeneralHeader(..), Header(..))
 import SGF.Parse.Util
 import qualified SGF.Parse.Raw as Raw
 import qualified SGF.Types     as T
@@ -229,4 +229,33 @@ defaultSize = [
     (Amazons        , (10, 10)),
     (Gess           , (20, 20))
     ]
+
+rulesetLookup rs  = flip lookup rs . map toLower
+rulesetGo         = rulesetLookup [
+    ("aga"                      , AGA),
+    ("goe"                      , GOE),
+    ("chinese"                  , Chinese),
+    ("japanese"                 , Japanese),
+    ("nz"                       , NewZealand)
+    ]
+rulesetBackgammon = rulesetLookup [
+    ("crawford"                 , Crawford),
+    ("crawford:crawfordgame"    , CrawfordGame),
+    ("jacoby"                   , Jacoby)
+    ]
+rulesetOcti s = case break (== ':') s of
+    (major, ':':minors) -> liftM  (flip OctiRuleSet (minorVariations minors       )) (majorVariation major        )
+    (majorOrMinors, "") -> liftM  (flip OctiRuleSet []                             ) (majorVariation majorOrMinors)
+                   `mplus` return (OctiRuleSet Full (minorVariations majorOrMinors))
+    where
+    majorVariation      = rulesetLookup [("full", Full), ("fast", Fast), ("kids", Kids)]
+    minorVariation    s = fromMaybe (OtherMinorVariation s) . rulesetLookup [("edgeless", Edgeless), ("superprong", Superprong)] $ s
+    minorVariations     = map minorVariation . splitWhen (== ',')
+
+ruleset read maybeDefault header = do
+    maybeRulesetString <- transMap (simple header) =<< consumeSingle "RU"
+    return $ case (maybeRulesetString, maybeRulesetString >>= read) of
+        (Nothing, _      ) -> fmap Known maybeDefault
+        (Just s , Nothing) -> Just (OtherRuleSet s)
+        (_      , Just rs) -> Just (Known rs)
 -- }}}

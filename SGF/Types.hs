@@ -41,8 +41,12 @@ data InitialPosition  = Beginning | End      deriving (Eq, Ord, Show, Read, Enum
 data RankScale        = Kyu | Dan | Pro      deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data ViewerSetting    = Tried | Marked | LastMove | Headings | Lock             deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data InitialPlacement = Standard | ScrambledEggs | Parachute | Gemma | Custom   deriving (Eq, Ord, Show, Read, Enum, Bounded)
+data RuleSetGo        = AGA | GOE | Chinese | Japanese | NewZealand             deriving (Eq, Ord, Show, Read, Enum, Bounded)
+data RuleSetBackgammon= Crawford | CrawfordGame | Jacoby                        deriving (Eq, Ord, Show, Read, Enum, Bounded)
+data RuleSetOcti      = OctiRuleSet MajorVariation [MinorVariation]             deriving (Eq, Ord, Show, Read)
 data MajorVariation   = Full | Fast | Kids                                      deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data MinorVariation   = Edgeless | Superprong | OtherMinorVariation String      deriving (Eq, Ord, Show, Read)
+data RuleSet a        = Known a | OtherRuleSet String                           deriving (Eq, Ord, Show, Read)
 data WinType          = Score Rational | Resign | Time | Forfeit | OtherWinType deriving (Eq, Ord, Show, Read)
 data GameResult       = Draw | Void | Unknown | Win Color WinType               deriving (Eq, Ord, Show, Read)
 data Rank             = Ranked Integer RankScale (Maybe Certainty) | OtherRank String       deriving (Eq, Ord, Show, Read)
@@ -56,12 +60,6 @@ data MatchInfo = Length           Integer
                | GameNumber       Integer
                | StartScore Color Integer
                | OtherMatchInfo String String
-    deriving (Eq, Ord, Show, Read)
-
-data RuleSet = AGA | GOE | Japanese | NewZealand           -- Go
-             | Crawford | CrawfordGame | Jacoby            -- Backgammon
-             | OctiRuleSet MajorVariation [MinorVariation] -- Octi, obviously
-             | OtherRuleSet String
     deriving (Eq, Ord, Show, Read)
 
 data PartialDate
@@ -86,7 +84,7 @@ data Header = Header {
     specificHeader :: Maybe SpecificHeader
     } deriving (Eq, Ord, Show, Read)
 
-data GeneralGameInfo = GeneralGameInfo {
+data GeneralGameInfo ruleset = GeneralGameInfo {
     rankBlack       :: Maybe Rank,
     rankWhite       :: Maybe Rank,
     teamNameBlack   :: Maybe String,
@@ -105,7 +103,7 @@ data GeneralGameInfo = GeneralGameInfo {
     game            :: Maybe String,
     opening         :: Maybe String,
     overtime        :: Maybe String,
-    ruleset         :: Maybe RuleSet,
+    ruleset         :: Maybe (RuleSet ruleset),
     timeLimit       :: Maybe Rational,
     result          :: Maybe GameResult
     } deriving (Eq, Ord, Show, Read)
@@ -119,10 +117,5 @@ data SpecificGameInfo
     | GameInfoHex               { initialPositionHex :: Maybe () }
     | GameInfoOcti              { squaresWhite :: Maybe [Point], squaresBlack :: Maybe [Point], prongs :: Integer, reserve :: Integer, superProngs :: Integer }
     deriving (Eq, Ord, Show, Read)
-
-data GameInfo = GameInfo {
-    generalGameInfo  :: GeneralGameInfo,
-    specificGameInfo :: Maybe SpecificGameInfo
-    } deriving (Eq, Ord, Show, Read)
 
 data Game = Game deriving (Eq, Ord, Show, Read) -- TODO
