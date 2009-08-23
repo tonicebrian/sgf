@@ -220,6 +220,23 @@ round s = case words s of
         -> FormattedRound (read roundNumber) (init roundType)
     _   -> OtherRound s
 -- }}}
+-- move properties {{{
+generalMove move = return ()
+-- }}}
+-- setup properties {{{
+generalSetup stone point = return ()
+-- }}}
+-- known properties list {{{
+data PropertyType = Move | Setup | Root | GameInfo | Inherit | None deriving (Eq, Ord, Show, Read, Enum, Bounded)
+
+properties = liftM2 (++) properties' . extraProperties where
+    properties' Move     = ["B", "KO", "MN", "W", "BM", "DO", "IT", "TE", "BL", "OB", "OW", "WL"]
+    properties' Setup    = ["AB", "AE", "AW", "PL"]
+    properties' Root     = ["AP", "CA", "FF", "GM", "ST", "SZ"]
+    properties' GameInfo = ["AN", "BR", "BT", "CP", "DT", "EV", "GN", "GC", "ON", "OT", "PB", "PC", "PW", "RE", "RO", "RU", "SO", "TM", "US", "WR", "WT"]
+    properties' Inherit  = ["DD", "PM", "VW"]
+    properties' None     = ["C", "DM", "GB", "GW", "HO", "N", "UC", "V", "AR", "CR", "LB", "LN", "MA", "SL", "SQ", "TR", "FG"]
+-- }}}
 -- game-specific stuff {{{
 defaultSize = [
     (Go             , (19, 19)),
@@ -258,4 +275,20 @@ ruleSet read maybeDefault header = do
         (Nothing, _      ) -> fmap Known maybeDefault
         (Just s , Nothing) -> Just (OtherRuleSet s)
         (_      , Just rs) -> Just (Known rs)
+
+ruleSetDefault = ruleSet (const Nothing) Nothing
+
+extraProperties Go            GameInfo = ["HA", "KM"]
+extraProperties Go            None     = ["TB", "TW"]
+extraProperties Backgammon    Setup    = ["CO", "CV", "DI"]
+extraProperties Backgammon    GameInfo = ["MI", "RE", "RU"]
+extraProperties LinesOfAction GameInfo = ["IP", "IY", "SU"]
+extraProperties LinesOfAction None     = ["AS", "SE"]
+extraProperties Hex           Root     = ["IS"]
+extraProperties Hex           GameInfo = ["IP"]
+extraProperties Amazons       Setup    = ["AA"]
+extraProperties Octi          Setup    = ["RP"]
+extraProperties Octi          GameInfo = ["BO", "WO", "NP", "NR", "NS"]
+extraProperties Octi          None     = ["AS", "CS", "MS", "SS", "TS"]
+extraProperties _             _        = []
 -- }}}

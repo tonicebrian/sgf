@@ -37,6 +37,8 @@ data ErrorType
     | OutOfBounds
     | BadlyFormattedValue
     | BadlyEncodedValue
+    | ConcurrentMoveAndSetup
+    | ExtraMoveAnnotations
     deriving (Eq, Ord, Show, Read, Bounded, Enum)
 
 data Error
@@ -62,11 +64,13 @@ data Warning
     = DuplicatePropertyOmitted          Property
     | SquareSizeSpecifiedAsRectangle    SourcePos
     | DanglingEscapeCharacterOmitted    SourcePos
-    | PropValueOmittedForNoneProperty   Property
-    | PreservingUnknownProperty         String
+    | PropValueForNonePropertyOmitted   Property
+    | UnknownPropertyPreserved          String
     | PointSpecifiedAsPointRange        Property
     | DuplicatePointsOmitted            Property [Point]
     | InvalidDatesClipped               [PartialDate]
+    | AnnotationWithNoMoveOmitted       Property
+    | ExtraGameInfoOmitted              Property
     deriving (Eq, Ord, Show)
 
 type State = Tree [Property]
@@ -143,6 +147,12 @@ checkPointList :: (PTranslator [Point] -> PTranslator [[Point]]) -> (PTranslator
 checkPointList listType a p = listType (mayBeCompoundPoint a) p >>= warnAboutDuplicatePoints p . concat
 -- }}}
 -- low-level {{{
+has :: String -> Translator Bool
+has s = gets (any ((s ==) . name) . rootLabel)
+
+hasAny :: [String] -> Translator Bool
+hasAny = fmap or . mapM has
+
 consume :: String -> Translator (Maybe Property)
 consume s = do
     (v, rest) <- gets (partition ((== s) . name) . rootLabel)
@@ -159,7 +169,7 @@ consumeSingle s = do
 unknownProperties :: Translator (Map String [[Word8]])
 unknownProperties = do
     m <- gets (fromList . map (name &&& values) . rootLabel)
-    tell [PreservingUnknownProperty name | name <- keys m]
+    tell [UnknownPropertyPreserved name | name <- keys m]
     return m
 -- }}}
 -- PTranslators and combinators {{{
@@ -188,7 +198,7 @@ text   = decodeAndDescape '\n'
 
 none :: PTranslator ()
 none (Property { values = [[]] }) = return ()
-none p = tell [PropValueOmittedForNoneProperty p]
+none p = tell [PropValueForNonePropertyOmitted p]
 
 compose :: PTranslator a -> PTranslator b -> PTranslator (a, b)
 compose a b p@(Property { values = vs }) = case splitColons vs of
