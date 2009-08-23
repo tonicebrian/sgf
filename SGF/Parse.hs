@@ -21,7 +21,8 @@ import Text.Parsec.Pos    (newPos)
 
 import SGF.Parse.Encodings
 import SGF.Parse.Raw hiding (gameTree, collection)
-import SGF.Types     hiding (GeneralGameInfo(..), GeneralHeader(..), Header(..))
+import SGF.Types     hiding (Game(..), GameInfo(..), Setup(..), Move(..))
+import SGF.Types     (Game(Game))
 import SGF.Parse.Util
 import qualified SGF.Parse.Raw as Raw
 import qualified SGF.Types     as T
@@ -43,8 +44,13 @@ gameTree = do
     gam <- gameType
     var <- variationType
     siz <- size gam
-    inf <- generalGameInfo hea
-    return (T.Header (T.GeneralHeader app gam var siz) Nothing, inf)
+    fmap (Game app var siz) $ case gam of
+        Go            -> fmap TreeGo            $ nodeGo siz
+        Backgammon    -> fmap TreeBackgammon    $ nodeBackgammon
+        LinesOfAction -> fmap TreeLinesOfAction $ nodeLinesOfAction
+        Hex           -> gameHex
+        Octi          -> fmap TreeOcti          $ nodeOcti
+        other         -> fmap (TreeOther other) $ nodeOther
 
 -- TODO: delete "test" and "stupid"
 test = mapM (translate (consume "AAA" >>= transMap (elistOfPoint stupid))) =<< Raw.collection
@@ -104,8 +110,8 @@ size gameType = do
     checkValidity t m n p = when (invalid t m n) (dieWithJust OutOfBounds p) >> return (Just (m, n))
 -- }}}
 -- game-info properties {{{
-generalGameInfo header =
-        foldM (consumeSimpleGameInfo header) emptyGeneralGameInfo simpleGameInfo
+gameInfo header =
+        foldM (consumeSimpleGameInfo header) (emptyGameInfo ()) simpleGameInfo
     >>= consumeUpdateGameInfo      rank   (\g v -> g { T.rankBlack = v }) "BR" header
     >>= consumeUpdateGameInfo      rank   (\g v -> g { T.rankWhite = v }) "WR" header
     >>= consumeUpdateGameInfo      round  (\g v -> g { T.round     = v }) "RO" header
@@ -209,7 +215,7 @@ clipDate (Day { year = y, month = m, day = d }) = let m' = clipDate (Month y m) 
     day  = max 1 . min (fromIntegral (gregorianMonthLength (year m') (fromIntegral (month m')))) $ d
     }
 
-warnClipDate gameInfo@(T.GeneralGameInfo { T.date = d }) = let d' = fmap (map clipDate) d in do
+warnClipDate gameInfo@(T.GameInfo { T.date = d }) = let d' = fmap (map clipDate) d in do
     when (d /= d') (tell [InvalidDatesClipped (fromJust d)])
     return gameInfo { T.date = d' }
 
@@ -221,10 +227,10 @@ round s = case words s of
     _   -> OtherRound s
 -- }}}
 -- move properties {{{
-generalMove move = return ()
+move move = return ()
 -- }}}
 -- setup properties {{{
-generalSetup stone point = return ()
+setup stone point = return ()
 -- }}}
 -- known properties list {{{
 data PropertyType = Move | Setup | Root | GameInfo | Inherit | None deriving (Eq, Ord, Show, Read, Enum, Bounded)
@@ -291,4 +297,12 @@ extraProperties Octi          Setup    = ["RP"]
 extraProperties Octi          GameInfo = ["BO", "WO", "NP", "NR", "NS"]
 extraProperties Octi          None     = ["AS", "CS", "MS", "SS", "TS"]
 extraProperties _             _        = []
+
+gameHex = fmap (TreeHex []) nodeHex
+nodeGo size       = return (Node emptyGameNode [])
+nodeBackgammon    = nodeOther
+nodeLinesOfAction = nodeOther
+nodeHex           = nodeOther
+nodeOcti          = nodeOther
+nodeOther         = return (Node emptyGameNode [])
 -- }}}

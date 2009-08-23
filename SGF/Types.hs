@@ -1,8 +1,15 @@
+{-# LANGUAGE EmptyDataDecls #-}
 module SGF.Types where
 
 import Data.List
 import Data.Maybe
 import Data.Tree
+
+data Void
+instance Eq   Void where _ == _ = True
+instance Ord  Void where compare _ _ = EQ
+instance Read Void where readsPrec _ _ = []
+instance Show Void where show _  = ""
 
 data GameType =
     Go | Othello | Chess | Gomoku | NineMen'sMorris |
@@ -68,23 +75,49 @@ data PartialDate
     | Day   { year :: Integer, month :: Integer, day :: Integer }
     deriving (Eq, Ord, Show, Read)
 
-data GeneralHeader = GeneralHeader {
+data Game = Game {
     application     :: Maybe (Application, Version),
-    gameType        :: GameType,
     variationType   :: Maybe (VariationType, AutoMarkup),
-    size            :: Maybe (Integer, Integer)
-    } deriving (Eq, Ord, Show, Read)
+    size            :: Maybe (Integer, Integer),
+    tree            :: GameTree
+    } deriving (Eq, Show, Read)
 
-data SpecificHeader = HexHeader {
-    initialSetting  :: [(ViewerSetting, Bool)]
-    } deriving (Eq, Ord, Show, Read)
+data GameTree
+    = TreeGo                          TreeGo
+    | TreeBackgammon                  TreeBackgammon
+    | TreeLinesOfAction               TreeLinesOfAction
+    | TreeHex [(ViewerSetting, Bool)] TreeHex
+    | TreeOcti                        TreeOcti
+    | TreeOther GameType              TreeOther
+    deriving (Eq, Show, Read)
 
-data Header = Header {
-    generalHeader  :: GeneralHeader,
-    specificHeader :: Maybe SpecificHeader
-    } deriving (Eq, Ord, Show, Read)
+type TreeGo            = Tree NodeGo
+type TreeBackgammon    = Tree NodeBackgammon
+type TreeLinesOfAction = Tree NodeLinesOfAction
+type TreeHex           = Tree NodeHex
+type TreeOcti          = Tree NodeOcti
+type TreeOther         = Tree NodeOther
 
-data GeneralGameInfo ruleSet = GeneralGameInfo {
+data GameNode move stone ruleSet extraGameInfo = GameNode {
+    gameInfo    :: Maybe (GameInfo ruleSet extraGameInfo),
+    action      :: Either (Setup stone) (Move move)
+    } deriving (Eq, Ord, Show, Read)
+emptyGameNode = GameNode Nothing (Left emptySetup)
+
+type NodeGo            = GameNode () () RuleSetGo         GameInfoGo
+type NodeBackgammon    = GameNode () () RuleSetBackgammon GameInfoBackgammon
+type NodeLinesOfAction = GameNode () () Void              GameInfoLinesOfAction
+type NodeHex           = GameNode () () Void              GameInfoHex
+type NodeOcti          = GameNode () () RuleSetOcti       GameInfoOcti
+type NodeOther         = GameNode () () Void              ()
+
+data Move move = Move deriving (Eq, Ord, Show, Read)
+emptyMove = Move
+
+data Setup stone = Setup deriving (Eq, Ord, Show, Read)
+emptySetup = Setup
+
+data GameInfo ruleSet extra = GameInfo {
     rankBlack       :: Maybe Rank,
     rankWhite       :: Maybe Rank,
     teamNameBlack   :: Maybe String,
@@ -105,17 +138,13 @@ data GeneralGameInfo ruleSet = GeneralGameInfo {
     overtime        :: Maybe String,
     ruleSet         :: Maybe (RuleSet ruleSet),
     timeLimit       :: Maybe Rational,
-    result          :: Maybe GameResult
+    result          :: Maybe GameResult,
+    other           :: extra
     } deriving (Eq, Ord, Show, Read)
+emptyGameInfo = GameInfo Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing -- lololololol
 
-emptyGeneralGameInfo = GeneralGameInfo Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing -- lololololol
-
-data SpecificGameInfo
-    = GameInfoGo                { handicap :: Maybe Integer, komi :: Maybe Rational }
-    | GameInfoBackgammon        { match :: Maybe [MatchInfo]  }
-    | GameInfoLinesOfAction     { initialPositionLOA :: InitialPosition, invertYAxis :: Bool, initialPlacement :: InitialPlacement }
-    | GameInfoHex               { initialPositionHex :: Maybe () }
-    | GameInfoOcti              { squaresWhite :: Maybe [Point], squaresBlack :: Maybe [Point], prongs :: Integer, reserve :: Integer, superProngs :: Integer }
-    deriving (Eq, Ord, Show, Read)
-
-data Game = Game deriving (Eq, Ord, Show, Read) -- TODO
+data GameInfoGo            = GameInfoGo             { handicap :: Maybe Integer, komi :: Maybe Rational }                                                                           deriving (Eq, Ord, Show, Read)
+data GameInfoBackgammon    = GameInfoBackgammon     { match :: Maybe [MatchInfo] }                                                                                                  deriving (Eq, Ord, Show, Read)
+data GameInfoLinesOfAction = GameInfoLinesOfAction  { initialPositionLOA :: InitialPosition, invertYAxis :: Bool, initialPlacement :: InitialPlacement }                            deriving (Eq, Ord, Show, Read)
+data GameInfoHex           = GameInfoHex            { initialPositionHex :: Maybe () }                                                                                              deriving (Eq, Ord, Show, Read)
+data GameInfoOcti          = GameInfoOcti           { squaresWhite :: Maybe [Point], squaresBlack :: Maybe [Point], prongs :: Integer, reserve :: Integer, superProngs :: Integer } deriving (Eq, Ord, Show, Read)
