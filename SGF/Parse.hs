@@ -315,7 +315,7 @@ nodeGo header size seenGameInfo = do
     where
     gameInfoProperties = properties Go GameInfo
     warnGameInfo       = mapM_ (warnSingle ExtraGameInfoOmitted) gameInfoProperties
-    warnSingle     w p = maybe (return ()) (tell . (:[]) . ExtraGameInfoOmitted) =<< consume p
+    warnSingle     w p = maybe (return ()) (tell . (:[]) . w) =<< consume p
 
 nodeBackgammon    = nodeOther
 nodeLinesOfAction = nodeOther
