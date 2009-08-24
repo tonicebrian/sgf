@@ -9,10 +9,11 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Writer
 import Data.Char
+import Data.Encoding
 import Data.List
 import Data.List.Split
 import Data.Maybe
-import Data.Encoding
+import Data.Ord
 import Data.Time.Calendar
 import Data.Tree
 import Prelude     hiding (round)
@@ -54,6 +55,8 @@ gameTree = do
         Octi          -> fmap TreeOcti          . nodeOcti h
         other         -> fmap (TreeOther other) . nodeOther h
 -- }}}
+warnAll     w ps = mapM_ (\p -> maybe (return ()) (tell . (:[]) . w) =<< consume p) ps
+dieEarliest e ps = dieWith e . head . sortBy (comparing position) . catMaybes =<< mapM consume ps
 -- game header information {{{
 getFormat   :: Translator Integer
 getEncoding :: Translator DynEncoding
@@ -225,7 +228,11 @@ round s = case words s of
     _   -> OtherRound s
 -- }}}
 -- move properties {{{
-move move = return T.Move
+move move = do
+    color <- mapM has ["B", "W"]
+    move_ <- fmap msum . mapM consume $ ["B", "W"]
+    when (and color) (dieWithJust ConcurrentBlackAndWhiteMove move_)
+    fmap T.Move $ transMap (\p -> fmap ((,) (if head color then Black else White)) (move p)) move_
 -- }}}
 -- setup properties {{{
 setup stone point = return T.Setup
@@ -298,24 +305,40 @@ extraProperties _             _        = []
 
 gameInfoGo = liftM2 GameInfoGo (consume "HA" >>= transMap number) (consume "KM" >>= transMap real)
 
+pointGo (Property { values = [[x, y]] }) | valid x && valid y = return (translate x, translate y)
+    where
+    valid x     = (enum 'a' <= x && x <= enum 'z') || (enum 'A' <= x && x <= enum 'Z')
+    translate x = enum x - enum (if x < enum 'a' then 'A' else 'a') + 1
+pointGo p = dieWith BadlyFormattedValue p
+
+moveGo _             (Property { values = [[]] }) = return Pass
+moveGo (Just (w, h)) p                            = pointGo p >>= \v@(x, y) -> return $ if x > w || y > h then Pass else Play v
+moveGo _             p                            = fmap Play (pointGo p)
+
+stoneGo = pointGo
+
 gameHex header seenGameInfo = fmap (TreeHex []) (nodeHex header seenGameInfo)
 
 nodeGo header size seenGameInfo = do
-    hasGameInfo <- hasAny gameInfoProperties
+    [hasGameInfo, hasRoot, hasSetup, hasMove] <- mapM (hasAny . properties Go) [GameInfo, Root, Setup, Move]
     let setGameInfo       = hasGameInfo && not seenGameInfo
         duplicateGameInfo = hasGameInfo && seenGameInfo
+    when (hasSetup && hasMove) dieSetupAndMove
     when duplicateGameInfo warnGameInfo
-    mGameInfo     <- liftM ((guard setGameInfo >>) . Just) (gameInfo header)
+    when hasRoot           warnRoot
+
+    mGameInfo     <- liftM (\x -> guard setGameInfo >> Just x) (gameInfo header)
     extraGameInfo <- gameInfoGo
     ruleSet_      <- ruleSet ruleSetGo Nothing header
-    action_       <- liftM Right $ move undefined
+    action_       <- if hasMove then liftM Right $ move (moveGo size) else liftM Left $ setup stoneGo pointGo
     unknown_      <- unknownProperties
+    children      <- gets subForest >>= mapM (\s -> put s >> nodeGo header size (seenGameInfo || hasGameInfo))
 
-    return (Node (GameNode (fmap (\gi -> gi { T.ruleSet = ruleSet_, T.other = extraGameInfo }) mGameInfo) action_ unknown_) [])
+    return (Node (GameNode (fmap (\gi -> gi { T.ruleSet = ruleSet_, T.other = extraGameInfo }) mGameInfo) action_ unknown_) children)
     where
-    gameInfoProperties = properties Go GameInfo
-    warnGameInfo       = mapM_ (warnSingle ExtraGameInfoOmitted) gameInfoProperties
-    warnSingle     w p = maybe (return ()) (tell . (:[]) . w) =<< consume p
+    dieSetupAndMove    = dieEarliest ConcurrentMoveAndSetup    (properties Go =<< [Setup, Move])
+    warnGameInfo       = warnAll     ExtraGameInfoOmitted      (properties Go GameInfo)
+    warnRoot           = warnAll     NestedRootPropertyOmitted (properties Go Root)
 
 nodeBackgammon    = nodeOther
 nodeLinesOfAction = nodeOther

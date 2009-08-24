@@ -107,15 +107,19 @@ data GameNode move stone ruleSet extraGameInfo = GameNode {
     } deriving (Eq, Ord, Show, Read)
 emptyGameNode = GameNode Nothing (Left emptySetup) empty
 
-type NodeGo            = GameNode () () RuleSetGo         GameInfoGo
-type NodeBackgammon    = GameNode () () RuleSetBackgammon GameInfoBackgammon
-type NodeLinesOfAction = GameNode () () Void              GameInfoLinesOfAction
-type NodeHex           = GameNode () () Void              GameInfoHex
-type NodeOcti          = GameNode () () RuleSetOcti       GameInfoOcti
-type NodeOther         = GameNode () () Void              ()
+type NodeGo            = GameNode MoveGo () RuleSetGo         GameInfoGo
+type NodeBackgammon    = GameNode ()     () RuleSetBackgammon GameInfoBackgammon
+type NodeLinesOfAction = GameNode ()     () Void              GameInfoLinesOfAction
+type NodeHex           = GameNode ()     () Void              GameInfoHex
+type NodeOcti          = GameNode ()     () RuleSetOcti       GameInfoOcti
+type NodeOther         = GameNode ()     () Void              ()
 
-data Move move = Move deriving (Eq, Ord, Show, Read)
+data Move move = Move {
+    move :: Maybe (Color, move)
+    } deriving (Eq, Ord, Show, Read)
 emptyMove = Move
+
+data MoveGo = Pass | Play Point deriving (Eq, Ord, Show, Read)
 
 data Setup stone = Setup deriving (Eq, Ord, Show, Read)
 emptySetup = Setup

@@ -38,6 +38,7 @@ data ErrorType
     | BadlyFormattedValue
     | BadlyEncodedValue
     | ConcurrentMoveAndSetup
+    | ConcurrentBlackAndWhiteMove
     | ExtraMoveAnnotations
     deriving (Eq, Ord, Show, Read, Bounded, Enum)
 
@@ -60,6 +61,7 @@ dieWithPos  e = die . KnownError e
 dieWith     e = dieWithPos e . position
 dieWithJust e = dieWith e . fromJust
 
+-- by convention, a warning that does not end in a verb just "did the right thing" to correct the problem
 data Warning
     = DuplicatePropertyOmitted          Property
     | SquareSizeSpecifiedAsRectangle    SourcePos
@@ -71,6 +73,7 @@ data Warning
     | InvalidDatesClipped               [PartialDate]
     | AnnotationWithNoMoveOmitted       Property
     | ExtraGameInfoOmitted              Property
+    | NestedRootPropertyOmitted         Property
     deriving (Eq, Ord, Show)
 
 type State = Tree [Property]
