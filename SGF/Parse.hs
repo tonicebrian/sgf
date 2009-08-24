@@ -21,8 +21,8 @@ import Text.Parsec.Pos    (newPos)
 
 import SGF.Parse.Encodings
 import SGF.Parse.Raw hiding (gameTree, collection)
-import SGF.Types     hiding (Game(..), GameInfo(..), Setup(..), Move(..))
-import SGF.Types     (Game(Game))
+import SGF.Types     hiding (Game(..), GameInfo(..), GameNode(..), Setup(..), Move(..))
+import SGF.Types     (Game(Game), GameNode(GameNode))
 import SGF.Parse.Util
 import qualified SGF.Parse.Raw as Raw
 import qualified SGF.Types     as T
@@ -44,17 +44,15 @@ gameTree = do
     gam <- gameType
     var <- variationType
     siz <- size gam
-    fmap (Game app var siz) $ case gam of
-        Go            -> fmap TreeGo            $ nodeGo siz
-        Backgammon    -> fmap TreeBackgammon    $ nodeBackgammon
-        LinesOfAction -> fmap TreeLinesOfAction $ nodeLinesOfAction
-        Hex           -> gameHex
-        Octi          -> fmap TreeOcti          $ nodeOcti
-        other         -> fmap (TreeOther other) $ nodeOther
-
--- TODO: delete "test" and "stupid"
-test = mapM (translate (consume "AAA" >>= transMap (elistOfPoint stupid))) =<< Raw.collection
-stupid (Property { values = (a:b:_):_ }) = return (enum a - enum 'a', enum b - enum 'a')
+    fmap (Game app var siz) (parse hea gam siz False)
+    where
+    parse h g s = case g of
+        Go            -> fmap TreeGo            . nodeGo h s
+        Backgammon    -> fmap TreeBackgammon    . nodeBackgammon h
+        LinesOfAction -> fmap TreeLinesOfAction . nodeLinesOfAction h
+        Hex           -> gameHex h
+        Octi          -> fmap TreeOcti          . nodeOcti h
+        other         -> fmap (TreeOther other) . nodeOther h
 -- }}}
 -- game header information {{{
 getFormat   :: Translator Integer
@@ -227,10 +225,10 @@ round s = case words s of
     _   -> OtherRound s
 -- }}}
 -- move properties {{{
-move move = return ()
+move move = return T.Move
 -- }}}
 -- setup properties {{{
-setup stone point = return ()
+setup stone point = return T.Setup
 -- }}}
 -- known properties list {{{
 data PropertyType = Move | Setup | Root | GameInfo | Inherit | None deriving (Eq, Ord, Show, Read, Enum, Bounded)
@@ -298,11 +296,30 @@ extraProperties Octi          GameInfo = ["BO", "WO", "NP", "NR", "NS"]
 extraProperties Octi          None     = ["AS", "CS", "MS", "SS", "TS"]
 extraProperties _             _        = []
 
-gameHex = fmap (TreeHex []) nodeHex
-nodeGo size       = return (Node emptyGameNode [])
+gameInfoGo = liftM2 GameInfoGo (consume "HA" >>= transMap number) (consume "KM" >>= transMap real)
+
+gameHex header seenGameInfo = fmap (TreeHex []) (nodeHex header seenGameInfo)
+
+nodeGo header size seenGameInfo = do
+    hasGameInfo <- hasAny gameInfoProperties
+    let setGameInfo       = hasGameInfo && not seenGameInfo
+        duplicateGameInfo = hasGameInfo && seenGameInfo
+    when duplicateGameInfo warnGameInfo
+    mGameInfo     <- liftM ((guard setGameInfo >>) . Just) (gameInfo header)
+    extraGameInfo <- gameInfoGo
+    ruleSet_      <- ruleSet ruleSetGo Nothing header
+    action_       <- liftM Right $ move undefined
+    unknown_      <- unknownProperties
+
+    return (Node (GameNode (fmap (\gi -> gi { T.ruleSet = ruleSet_, T.other = extraGameInfo }) mGameInfo) action_ unknown_) [])
+    where
+    gameInfoProperties = properties Go GameInfo
+    warnGameInfo       = mapM_ (warnSingle ExtraGameInfoOmitted) gameInfoProperties
+    warnSingle     w p = maybe (return ()) (tell . (:[]) . ExtraGameInfoOmitted) =<< consume p
+
 nodeBackgammon    = nodeOther
 nodeLinesOfAction = nodeOther
 nodeHex           = nodeOther
 nodeOcti          = nodeOther
-nodeOther         = return (Node emptyGameNode [])
+nodeOther header seenGameInfo = return (Node emptyGameNode [])
 -- }}}

@@ -2,8 +2,10 @@
 module SGF.Types where
 
 import Data.List
+import Data.Map hiding (findIndex)
 import Data.Maybe
 import Data.Tree
+import Data.Word
 
 data Void
 instance Eq   Void where _ == _ = True
@@ -100,9 +102,10 @@ type TreeOther         = Tree NodeOther
 
 data GameNode move stone ruleSet extraGameInfo = GameNode {
     gameInfo    :: Maybe (GameInfo ruleSet extraGameInfo),
-    action      :: Either (Setup stone) (Move move)
+    action      :: Either (Setup stone) (Move move),
+    unknown     :: Map String [[Word8]]
     } deriving (Eq, Ord, Show, Read)
-emptyGameNode = GameNode Nothing (Left emptySetup)
+emptyGameNode = GameNode Nothing (Left emptySetup) empty
 
 type NodeGo            = GameNode () () RuleSetGo         GameInfoGo
 type NodeBackgammon    = GameNode () () RuleSetBackgammon GameInfoBackgammon
