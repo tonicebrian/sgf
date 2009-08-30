@@ -256,7 +256,31 @@ move move = do
             return partialMove { T.move = Just (color, move), T.illegal = illegal, T.quality = quality }
 -- }}}
 -- setup properties {{{
-setup stone point = return T.Setup
+listFromMaybeList t p = fmap (fromMaybe []) (transMap t =<< consume p)
+
+setupPoint point = do
+    addBlack <- points "AB"
+    addWhite <- points "AW"
+    remove   <- points "AE"
+    let allPoints  = addBlack ++ addWhite ++ remove
+        duplicates = allPoints \\ nub allPoints
+        addWhite'  = addWhite  \\ addBlack
+        remove'    = remove    \\ (addBlack ++ addWhite')
+    unless (null duplicates) (tell [DuplicateSetupOperationsOmitted duplicates])
+    setupFinish addBlack addWhite' remove'
+    where
+    points = listFromMaybeList (listOfPoint point)
+
+-- note: does not (cannot, in general) check the constraint that addBlack,
+-- addWhite, and remove specify disjoint sets of points
+setupPointStone point stone = do
+    addBlack <- listFromMaybeList (listOf      stone) "AB"
+    addWhite <- listFromMaybeList (listOf      stone) "AW"
+    remove   <- listFromMaybeList (listOfPoint point) "AE"
+    setupFinish addBlack addWhite remove
+
+setupFinish addBlack addWhite remove =
+    liftM (T.Setup addBlack addWhite remove) (transMap color =<< consume "PL")
 -- }}}
 -- known properties list {{{
 data PropertyType = Move | Setup | Root | GameInfo | Inherit | None deriving (Eq, Ord, Show, Read, Enum, Bounded)
@@ -336,8 +360,6 @@ moveGo _             (Property { values = [[]] }) = return Pass
 moveGo (Just (w, h)) p                            = pointGo p >>= \v@(x, y) -> return $ if x > w || y > h then Pass else Play v
 moveGo _             p                            = fmap Play (pointGo p)
 
-stoneGo = pointGo
-
 gameHex header seenGameInfo = fmap (TreeHex []) (nodeHex header seenGameInfo)
 
 nodeGo header size seenGameInfo = do
@@ -351,7 +373,7 @@ nodeGo header size seenGameInfo = do
     mGameInfo     <- liftM (\x -> guard setGameInfo >> Just x) (gameInfo header)
     extraGameInfo <- gameInfoGo
     ruleSet_      <- ruleSet ruleSetGo Nothing header
-    action_       <- if hasMove then liftM Right $ move (moveGo size) else liftM Left $ setup stoneGo pointGo
+    action_       <- if hasMove then liftM Right $ move (moveGo size) else liftM Left $ setupPoint pointGo
     unknown_      <- unknownProperties
     children      <- gets subForest >>= mapM (\s -> put s >> nodeGo header size (seenGameInfo || hasGameInfo))
 

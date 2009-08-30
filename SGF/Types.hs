@@ -130,8 +130,13 @@ emptyMove = Move Nothing Possibly Nothing Nothing Nothing Nothing Nothing Nothin
 
 data MoveGo = Pass | Play Point deriving (Eq, Ord, Show, Read)
 
-data Setup stone = Setup deriving (Eq, Ord, Show, Read)
-emptySetup = Setup
+data Setup stone = Setup {
+    addBlack :: [stone],
+    addWhite :: [stone],
+    remove   :: [Point],
+    toPlay   :: Maybe Color
+    } deriving (Eq, Ord, Show, Read)
+emptySetup = Setup [] [] [] Nothing
 
 data GameInfo ruleSet extra = GameInfo {
     rankBlack       :: Maybe Rank,

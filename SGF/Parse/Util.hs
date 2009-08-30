@@ -76,6 +76,7 @@ data Warning
     | ExtraGameInfoOmitted              Property
     | NestedRootPropertyOmitted         Property
     | MovelessAnnotationOmitted         Property
+    | DuplicateSetupOperationsOmitted   [Point]
     deriving (Eq, Ord, Show)
 
 type State = Tree [Property]
