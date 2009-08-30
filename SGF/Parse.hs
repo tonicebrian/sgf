@@ -232,7 +232,7 @@ move move = do
     color <- mapM has ["B", "W"]
     move_ <- fmap msum . mapM consume $ ["B", "W"]
     when (and color) (dieWithJust ConcurrentBlackAndWhiteMove move_)
-    fmap T.Move $ transMap (\p -> fmap ((,) (if head color then Black else White)) (move p)) move_
+    fmap (flip T.Move Possibly) $ transMap (\p -> fmap ((,) (if head color then Black else White)) (move p)) move_
 -- }}}
 -- setup properties {{{
 setup stone point = return T.Setup

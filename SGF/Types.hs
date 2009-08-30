@@ -42,6 +42,7 @@ type Application        = String
 type Version            = String
 type Point              = (Integer, Integer) -- 0-indexed
 type AutoMarkup         = Bool
+data FuzzyBool          = Possibly  | Definitely deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data VariationType      = Children  | Siblings  deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data Emphasis           = Normal    | Strong    deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data Color              = Black     | White     deriving (Eq, Ord, Show, Read, Enum, Bounded)
@@ -115,9 +116,10 @@ type NodeOcti          = GameNode ()     () RuleSetOcti       GameInfoOcti
 type NodeOther         = GameNode ()     () Void              ()
 
 data Move move = Move {
-    move :: Maybe (Color, move)
+    move    :: Maybe (Color, move),
+    illegal :: FuzzyBool
     } deriving (Eq, Ord, Show, Read)
-emptyMove = Move
+emptyMove = Move Nothing Possibly
 
 data MoveGo = Pass | Play Point deriving (Eq, Ord, Show, Read)
 
