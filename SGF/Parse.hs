@@ -282,6 +282,10 @@ setupPointStone point stone = do
 setupFinish addBlack addWhite remove =
     liftM (T.Setup addBlack addWhite remove) (transMap color =<< consume "PL")
 -- }}}
+-- none properties {{{
+annotation = return emptyAnnotation
+markup = return emptyMarkup
+-- }}}
 -- known properties list {{{
 data PropertyType = Move | Setup | Root | GameInfo | Inherit | None deriving (Eq, Ord, Show, Read, Enum, Bounded)
 
@@ -374,10 +378,12 @@ nodeGo header size seenGameInfo = do
     extraGameInfo <- gameInfoGo
     ruleSet_      <- ruleSet ruleSetGo Nothing header
     action_       <- if hasMove then liftM Right $ move (moveGo size) else liftM Left $ setupPoint pointGo
+    annotation_   <- annotation
+    markup_       <- markup
     unknown_      <- unknownProperties
     children      <- gets subForest >>= mapM (\s -> put s >> nodeGo header size (seenGameInfo || hasGameInfo))
 
-    return (Node (GameNode (fmap (\gi -> gi { T.ruleSet = ruleSet_, T.other = extraGameInfo }) mGameInfo) action_ unknown_) children)
+    return (Node (GameNode (fmap (\gi -> gi { T.ruleSet = ruleSet_, T.other = extraGameInfo }) mGameInfo) action_ annotation_ markup_ unknown_) children)
     where
     dieSetupAndMove    = dieEarliest ConcurrentMoveAndSetup    (properties Go =<< [Setup, Move])
     warnGameInfo       = warnAll     ExtraGameInfoOmitted      (properties Go GameInfo)

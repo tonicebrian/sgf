@@ -105,9 +105,11 @@ type TreeOther         = Tree NodeOther
 data GameNode move stone ruleSet extraGameInfo = GameNode {
     gameInfo    :: Maybe (GameInfo ruleSet extraGameInfo),
     action      :: Either (Setup stone) (Move move),
+    annotation  :: Annotation,
+    markup      :: Markup,
     unknown     :: Map String [[Word8]]
     } deriving (Eq, Ord, Show, Read)
-emptyGameNode = GameNode Nothing (Left emptySetup) empty
+emptyGameNode = GameNode Nothing (Left emptySetup) emptyAnnotation emptyMarkup empty
 
 type NodeGo            = GameNode MoveGo Point RuleSetGo         GameInfoGo
 type NodeBackgammon    = GameNode ()     ()    RuleSetBackgammon GameInfoBackgammon
@@ -169,3 +171,9 @@ data GameInfoBackgammon    = GameInfoBackgammon     { match :: Maybe [MatchInfo]
 data GameInfoLinesOfAction = GameInfoLinesOfAction  { initialPositionLOA :: InitialPosition, invertYAxis :: Bool, initialPlacement :: InitialPlacement }                            deriving (Eq, Ord, Show, Read)
 data GameInfoHex           = GameInfoHex            { initialPositionHex :: Maybe () }                                                                                              deriving (Eq, Ord, Show, Read)
 data GameInfoOcti          = GameInfoOcti           { squaresWhite :: Maybe [Point], squaresBlack :: Maybe [Point], prongs :: Integer, reserve :: Integer, superProngs :: Integer } deriving (Eq, Ord, Show, Read)
+
+data Annotation = Annotation deriving (Eq, Ord, Show, Read)
+emptyAnnotation = Annotation
+
+data Markup = Markup deriving (Eq, Ord, Show, Read)
+emptyMarkup = Markup
