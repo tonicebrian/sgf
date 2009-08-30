@@ -240,12 +240,20 @@ move move = do
             T.overtimeMovesWhite    = overtimeMovesWhite_
             }
     case color_ of
-        [False, False] -> warnAll MovelessAnnotationOmitted ["KO"] >> return partialMove
+        [False, False] -> warnAll MovelessAnnotationOmitted ["KO", "BM", "DO", "IT", "TE"] >> return partialMove
         [True , True ] -> dieEarliest ConcurrentBlackAndWhiteMove ["B", "W"]
-        [black, white] -> let color_ = if black then Black else White in do
-            Just move_  <- transMap move =<< (fmap msum . mapM consume $ ["B", "W"])
-            illegal_    <- fmap (maybe Possibly (const Definitely)) $ transMap none =<< consume "KO"
-            return partialMove { T.move = Just (color_, move_), T.illegal = illegal_ }
+        [black, white] -> let color = if black then Black else White in do
+            Just move   <- transMap move =<< (fmap msum . mapM consume $ ["B", "W"])
+            illegal     <- fmap (maybe Possibly (const Definitely)) $ transMap none =<< consume "KO"
+            annotations <- mapM has ["BM", "DO", "IT", "TE"]
+            quality     <- case annotations of
+                [False, False, False, False] -> return Nothing
+                [True , False, False, False] -> fmap (fmap Bad ) $ transMap double =<< consume "BM"
+                [False, False, False, True ] -> fmap (fmap Good) $ transMap double =<< consume "TE"
+                [False, True , False, False] -> consume "DO" >>= transMap none >> return (Just Doubtful   )
+                [False, False, True , False] -> consume "IT" >>= transMap none >> return (Just Interesting)
+                _                            -> dieEarliest ConcurrentAnnotations ["BM", "DO", "IT", "TE"]
+            return partialMove { T.move = Just (color, move), T.illegal = illegal, T.quality = quality }
 -- }}}
 -- setup properties {{{
 setup stone point = return T.Setup

@@ -39,6 +39,7 @@ data ErrorType
     | BadlyEncodedValue
     | ConcurrentMoveAndSetup
     | ConcurrentBlackAndWhiteMove
+    | ConcurrentAnnotations
     | ExtraMoveAnnotations
     deriving (Eq, Ord, Show, Read, Bounded, Enum)
 
@@ -203,6 +204,12 @@ text   = decodeAndDescape '\n'
 none :: PTranslator ()
 none (Property { values = [[]] }) = return ()
 none p = tell [PropValueForNonePropertyOmitted p]
+
+double :: PTranslator Emphasis
+double p@(Property { values = vs }) = case map (map enum) vs of
+    "1":_ -> return Normal
+    "2":_ -> return Strong
+    _     -> dieWith BadlyFormattedValue p
 
 compose :: PTranslator a -> PTranslator b -> PTranslator (a, b)
 compose a b p@(Property { values = vs }) = case splitColons vs of
