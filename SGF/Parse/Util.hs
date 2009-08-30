@@ -74,6 +74,7 @@ data Warning
     | AnnotationWithNoMoveOmitted       Property
     | ExtraGameInfoOmitted              Property
     | NestedRootPropertyOmitted         Property
+    | MovelessAnnotationOmitted         Property
     deriving (Eq, Ord, Show)
 
 type State = Tree [Property]

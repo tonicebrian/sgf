@@ -229,10 +229,23 @@ round s = case words s of
 -- }}}
 -- move properties {{{
 move move = do
-    color <- mapM has ["B", "W"]
-    move_ <- fmap msum . mapM consume $ ["B", "W"]
-    when (and color) (dieWithJust ConcurrentBlackAndWhiteMove move_)
-    fmap (flip T.Move Possibly) $ transMap (\p -> fmap ((,) (if head color then Black else White)) (move p)) move_
+    color_                                              <- mapM has                           ["B", "W"]
+    [number_, overtimeMovesBlack_, overtimeMovesWhite_] <- mapM (consume >=> transMap number) ["MN", "OB", "OW"]
+    [timeBlack_, timeWhite_]                            <- mapM (consume >=> transMap real  ) ["BL", "WL"]
+    let partialMove = emptyMove {
+            T.number                = number_,
+            T.timeBlack             = timeBlack_,
+            T.timeWhite             = timeWhite_,
+            T.overtimeMovesBlack    = overtimeMovesBlack_,
+            T.overtimeMovesWhite    = overtimeMovesWhite_
+            }
+    case color_ of
+        [False, False] -> warnAll MovelessAnnotationOmitted ["KO"] >> return partialMove
+        [True , True ] -> dieEarliest ConcurrentBlackAndWhiteMove ["B", "W"]
+        [black, white] -> let color_ = if black then Black else White in do
+            Just move_  <- transMap move =<< (fmap msum . mapM consume $ ["B", "W"])
+            illegal_    <- fmap (maybe Possibly (const Definitely)) $ transMap none =<< consume "KO"
+            return partialMove { T.move = Just (color_, move_), T.illegal = illegal_ }
 -- }}}
 -- setup properties {{{
 setup stone point = return T.Setup

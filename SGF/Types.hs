@@ -59,6 +59,7 @@ data MinorVariation     = Edgeless | Superprong | OtherMinorVariation String    
 data RuleSet a          = Known !a | OtherRuleSet String                            deriving (Eq, Ord, Show, Read)
 data WinType            = Score Rational | Resign | Time | Forfeit | OtherWinType   deriving (Eq, Ord, Show, Read)
 data GameResult         = Draw | Void | Unknown | Win Color WinType                 deriving (Eq, Ord, Show, Read)
+data Quality            = Bad Emphasis | Doubtful | Interesting | Good Emphasis     deriving (Eq, Ord, Show, Read)
 data Rank               = Ranked Integer RankScale (Maybe Certainty) | OtherRank String         deriving (Eq, Ord, Show, Read)
 
 data Round = SimpleRound    Integer
@@ -116,10 +117,16 @@ type NodeOcti          = GameNode ()     () RuleSetOcti       GameInfoOcti
 type NodeOther         = GameNode ()     () Void              ()
 
 data Move move = Move {
-    move    :: Maybe (Color, move),
-    illegal :: FuzzyBool
+    move                :: Maybe (Color, move),
+    illegal             :: FuzzyBool,
+    number              :: Maybe Integer,
+    quality             :: Maybe Quality,
+    timeBlack           :: Maybe Rational,
+    timeWhite           :: Maybe Rational,
+    overtimeMovesBlack  :: Maybe Integer,
+    overtimeMovesWhite  :: Maybe Integer
     } deriving (Eq, Ord, Show, Read)
-emptyMove = Move Nothing Possibly
+emptyMove = Move Nothing Possibly Nothing Nothing Nothing Nothing Nothing Nothing
 
 data MoveGo = Pass | Play Point deriving (Eq, Ord, Show, Read)
 
