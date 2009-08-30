@@ -110,11 +110,11 @@ data GameNode move stone ruleSet extraGameInfo = GameNode {
 emptyGameNode = GameNode Nothing (Left emptySetup) empty
 
 type NodeGo            = GameNode MoveGo Point RuleSetGo         GameInfoGo
-type NodeBackgammon    = GameNode ()     () RuleSetBackgammon GameInfoBackgammon
-type NodeLinesOfAction = GameNode ()     () Void              GameInfoLinesOfAction
-type NodeHex           = GameNode ()     () Void              GameInfoHex
-type NodeOcti          = GameNode ()     () RuleSetOcti       GameInfoOcti
-type NodeOther         = GameNode ()     () Void              ()
+type NodeBackgammon    = GameNode ()     ()    RuleSetBackgammon GameInfoBackgammon
+type NodeLinesOfAction = GameNode ()     ()    Void              GameInfoLinesOfAction
+type NodeHex           = GameNode ()     ()    Void              GameInfoHex
+type NodeOcti          = GameNode ()     ()    RuleSetOcti       GameInfoOcti
+type NodeOther         = GameNode ()     ()    Void              ()
 
 data Move move = Move {
     move                :: Maybe (Color, move),
