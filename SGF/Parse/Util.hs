@@ -16,7 +16,7 @@ import Data.Map (Map(..), fromList, keys)
 import Data.Ord
 import Data.Tree
 import Data.Word
-import Text.Parsec hiding (State(..), newline)
+import Text.Parsec hiding (State(..), choice, newline)
 
 import SGF.Parse.Encodings
 import SGF.Parse.Raw
@@ -205,11 +205,17 @@ none :: PTranslator ()
 none (Property { values = [[]] }) = return ()
 none p = tell [PropValueForNonePropertyOmitted p]
 
+choice :: [([Word8], a)] -> PTranslator a
+choice vs p@(Property { values = []  }) = dieWith BadlyFormattedValue p -- can't happen
+choice vs p@(Property { values = v:_ }) = maybe (dieWith BadlyFormattedValue p) return (lookup v vs)
+
+choice' :: [(String, a)] -> PTranslator a
+choice' vs = choice [(map enum k, v) | (k', v) <- vs, k <- [k', map toLower k']]
+
 double :: PTranslator Emphasis
-double p@(Property { values = vs }) = case map (map enum) vs of
-    "1":_ -> return Normal
-    "2":_ -> return Strong
-    _     -> dieWith BadlyFormattedValue p
+color  :: PTranslator Color
+double = choice' [("1", Normal), ("2", Strong)]
+color  = choice' [("B", Black), ("W", White)]
 
 compose :: PTranslator a -> PTranslator b -> PTranslator (a, b)
 compose a b p@(Property { values = vs }) = case splitColons vs of
