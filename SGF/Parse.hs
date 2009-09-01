@@ -283,7 +283,12 @@ setupFinish addBlack addWhite remove =
     liftM (T.Setup addBlack addWhite remove) (transMap color =<< consume "PL")
 -- }}}
 -- none properties {{{
-annotation = return emptyAnnotation
+annotation header = do
+    comment <- transMap (text   header) =<< consume "C"
+    name    <- transMap (simple header) =<< consume "N"
+    hotspot <- transMap double          =<< consume "HO"
+    value   <- transMap real            =<< consume "V"
+    return Annotation { T.comment = comment, T.name = name, T.hotspot = hotspot, T.value = value }
 markup = return emptyMarkup
 -- }}}
 -- known properties list {{{
@@ -378,7 +383,7 @@ nodeGo header size seenGameInfo = do
     extraGameInfo <- gameInfoGo
     ruleSet_      <- ruleSet ruleSetGo Nothing header
     action_       <- if hasMove then liftM Right $ move (moveGo size) else liftM Left $ setupPoint pointGo
-    annotation_   <- annotation
+    annotation_   <- annotation header
     markup_       <- markup
     unknown_      <- unknownProperties
     children      <- gets subForest >>= mapM (\s -> put s >> nodeGo header size (seenGameInfo || hasGameInfo))

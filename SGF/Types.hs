@@ -172,8 +172,13 @@ data GameInfoLinesOfAction = GameInfoLinesOfAction  { initialPositionLOA :: Init
 data GameInfoHex           = GameInfoHex            { initialPositionHex :: Maybe () }                                                                                              deriving (Eq, Ord, Show, Read)
 data GameInfoOcti          = GameInfoOcti           { squaresWhite :: Maybe [Point], squaresBlack :: Maybe [Point], prongs :: Integer, reserve :: Integer, superProngs :: Integer } deriving (Eq, Ord, Show, Read)
 
-data Annotation = Annotation deriving (Eq, Ord, Show, Read)
-emptyAnnotation = Annotation
+data Annotation = Annotation {
+    comment :: Maybe String,
+    name    :: Maybe String,
+    hotspot :: Maybe Emphasis,
+    value   :: Maybe Rational
+    } deriving (Eq, Ord, Show, Read)
+emptyAnnotation = Annotation Nothing Nothing Nothing Nothing
 
 data Markup = Markup deriving (Eq, Ord, Show, Read)
 emptyMarkup = Markup

@@ -20,7 +20,7 @@ import Text.Parsec hiding (State(..), choice, newline)
 
 import SGF.Parse.Encodings
 import SGF.Parse.Raw
-import SGF.Types
+import SGF.Types hiding (name)
 -- }}}
 -- new types: Header, Error, Warning, State, Translator a, PTranslator a {{{
 data Header = Header {
