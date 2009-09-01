@@ -1,3 +1,7 @@
+-- TODO:
+-- * switch consumeSingle from an error to a warning
+-- * switch almost everybody over from consume to consumeSingle
+-- * switch transMap to call consumeSingle, and add transMapMulti
 -- boilerplate {{{
 module SGF.Parse.Util where
 
