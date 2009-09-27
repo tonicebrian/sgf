@@ -21,6 +21,9 @@ import Prelude     hiding (round)
 import Text.Parsec hiding (newline)
 import Text.Parsec.Pos    (newPos)
 
+import qualified Data.Map as Map
+import qualified Data.Set as Set
+
 import SGF.Parse.Encodings
 import SGF.Parse.Raw hiding (gameTree, collection)
 import SGF.Types     hiding (Game(..), GameInfo(..), GameNode(..), Setup(..), Move(..))
@@ -257,8 +260,6 @@ move move = do
             return partialMove { T.move = Just (color, move), T.illegal = illegal, T.quality = quality }
 -- }}}
 -- setup properties {{{
-listFromMaybeList t p = fmap (fromMaybe []) (transMap t =<< consume p)
-
 setupPoint point = do
     addBlack <- points "AB"
     addWhite <- points "AW"
@@ -270,14 +271,14 @@ setupPoint point = do
     unless (null duplicates) (tell [DuplicateSetupOperationsOmitted duplicates])
     setupFinish addBlack addWhite' remove'
     where
-    points = listFromMaybeList (listOfPoint point)
+    points = transMapList (listOfPoint point) <=< consume
 
 -- note: does not (cannot, in general) check the constraint that addBlack,
 -- addWhite, and remove specify disjoint sets of points
 setupPointStone point stone = do
-    addBlack <- listFromMaybeList (listOf      stone) "AB"
-    addWhite <- listFromMaybeList (listOf      stone) "AW"
-    remove   <- listFromMaybeList (listOfPoint point) "AE"
+    addBlack <- transMapList (listOf      stone) =<< consume "AB"
+    addWhite <- transMapList (listOf      stone) =<< consume "AW"
+    remove   <- transMapList (listOfPoint point) =<< consume "AE"
     setupFinish addBlack addWhite remove
 
 setupFinish addBlack addWhite remove =
@@ -290,11 +291,19 @@ annotation header = do
     hotspot     <- transMap double          =<< consume "HO"
     value       <- transMap real            =<< consume "V"
     judgments'  <- mapM (transMap double <=< consume) ["GW", "GB", "DM", "UC"]
-    let judgments = [(j, e) | (j, Just e) <- zip [GoodForWhite .. Unclear] judgments']
+    let judgments = [(j, e) | (j, Just e) <- zip [GoodForWhite ..] judgments']
     tell . map ExtraPositionalJudgmentOmitted . drop 1 $ judgments
     return Annotation { T.comment = comment, T.name = name, T.hotspot = hotspot, T.value = value, T.judgment = listToMaybe judgments }
 
-markup = return emptyMarkup
+addMarks marks (mark, points) = tell warning >> return result where
+    (ignored, inserted) = partition (`Map.member` marks) points
+    warning = map (DuplicateMarkupOmitted . (,) mark) ignored
+    result  = marks `Map.union` Map.fromList [(i, mark) | i <- inserted]
+
+markup point = do
+    markedPoints <- mapM (transMapList (listOfPoint point) <=< consume) ["CR", "MA", "SL", "SQ", "TR"]
+    marks <- foldM addMarks Map.empty . zip [Circle ..] $ markedPoints
+    return Markup { T.marks = marks }
 -- }}}
 -- known properties list {{{
 data PropertyType = Move | Setup | Root | GameInfo | Inherit | None deriving (Eq, Ord, Show, Read, Enum, Bounded)
@@ -389,7 +398,7 @@ nodeGo header size seenGameInfo = do
     ruleSet_      <- ruleSet ruleSetGo Nothing header
     action_       <- if hasMove then liftM Right $ move (moveGo size) else liftM Left $ setupPoint pointGo
     annotation_   <- annotation header
-    markup_       <- markup
+    markup_       <- markup pointGo
     unknown_      <- unknownProperties
     children      <- gets subForest >>= mapM (\s -> put s >> nodeGo header size (seenGameInfo || hasGameInfo))
 

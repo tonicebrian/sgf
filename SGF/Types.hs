@@ -50,6 +50,7 @@ data Certainty          = Uncertain | Certain       deriving (Eq, Ord, Show, Rea
 data InitialPosition    = Beginning | End           deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data RankScale          = Kyu | Dan | Pro           deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data Judgment           = GoodForWhite | GoodForBlack | Even | Unclear              deriving (Eq, Ord, Show, Read, Enum, Bounded)
+data Mark               = Circle | X | Selected | Square | Triangle                 deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data ViewerSetting      = Tried | Marked | LastMove | Headings | Lock               deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data InitialPlacement   = Standard | ScrambledEggs | Parachute | Gemma | Custom     deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data RuleSetGo          = AGA | GOE | Chinese | Japanese | NewZealand               deriving (Eq, Ord, Show, Read, Enum, Bounded)
@@ -134,7 +135,7 @@ emptyMove = Move Nothing Possibly Nothing Nothing Nothing Nothing Nothing Nothin
 data MoveGo = Pass | Play Point deriving (Eq, Ord, Show, Read)
 
 data Setup stone = Setup {
-    addBlack :: [stone],
+    addBlack :: [stone], -- TODO: all of these should probably be Set instead of []
     addWhite :: [stone],
     remove   :: [Point],
     toPlay   :: Maybe Color
@@ -152,7 +153,7 @@ data GameInfo ruleSet extra = GameInfo {
     source          :: Maybe String,
     user            :: Maybe String,
     copyright       :: Maybe String,
-    date            :: Maybe [PartialDate],
+    date            :: Maybe [PartialDate], -- TODO: use Set PartialDate instead of Maybe [PartialDate]?
     context         :: Maybe String,
     location        :: Maybe String,
     event           :: Maybe String,
@@ -182,5 +183,7 @@ data Annotation = Annotation {
     } deriving (Eq, Ord, Show, Read)
 emptyAnnotation = Annotation Nothing Nothing Nothing Nothing Nothing
 
-data Markup = Markup deriving (Eq, Ord, Show, Read)
-emptyMarkup = Markup
+data Markup = Markup {
+    marks       :: Map Point Mark
+    } deriving (Eq, Ord, Show, Read)
+emptyMarkup = Markup empty

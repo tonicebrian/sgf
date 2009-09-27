@@ -82,6 +82,7 @@ data Warning
     | MovelessAnnotationOmitted         Property
     | DuplicateSetupOperationsOmitted   [Point]
     | ExtraPositionalJudgmentOmitted    (Judgment, Emphasis)
+    | DuplicateMarkupOmitted            (Mark, Point)
     deriving (Eq, Ord, Show)
 
 type State = Tree [Property]
@@ -89,6 +90,9 @@ type Translator a = WriterT [Warning] (StateT State (Either Error)) a
 
 transMap :: (a -> Translator b) -> (Maybe a -> Translator (Maybe b))
 transMap f = maybe (return Nothing) (liftM Just . f)
+
+transMapList :: (a -> Translator [b]) -> (Maybe a -> Translator [b])
+transMapList = maybe (return [])
 
 type PTranslator a = Property -> Translator a
 -- }}}
