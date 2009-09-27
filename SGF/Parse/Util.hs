@@ -81,6 +81,7 @@ data Warning
     | NestedRootPropertyOmitted         Property
     | MovelessAnnotationOmitted         Property
     | DuplicateSetupOperationsOmitted   [Point]
+    | ExtraPositionalJudgmentOmitted    (Judgment, Emphasis)
     deriving (Eq, Ord, Show)
 
 type State = Tree [Property]

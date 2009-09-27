@@ -49,6 +49,7 @@ data Color              = Black     | White         deriving (Eq, Ord, Show, Rea
 data Certainty          = Uncertain | Certain       deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data InitialPosition    = Beginning | End           deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data RankScale          = Kyu | Dan | Pro           deriving (Eq, Ord, Show, Read, Enum, Bounded)
+data Judgment           = GoodForWhite | GoodForBlack | Even | Unclear              deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data ViewerSetting      = Tried | Marked | LastMove | Headings | Lock               deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data InitialPlacement   = Standard | ScrambledEggs | Parachute | Gemma | Custom     deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data RuleSetGo          = AGA | GOE | Chinese | Japanese | NewZealand               deriving (Eq, Ord, Show, Read, Enum, Bounded)
@@ -173,12 +174,13 @@ data GameInfoHex           = GameInfoHex            { initialPositionHex :: Mayb
 data GameInfoOcti          = GameInfoOcti           { squaresWhite :: Maybe [Point], squaresBlack :: Maybe [Point], prongs :: Integer, reserve :: Integer, superProngs :: Integer } deriving (Eq, Ord, Show, Read)
 
 data Annotation = Annotation {
-    comment :: Maybe String,
-    name    :: Maybe String,
-    hotspot :: Maybe Emphasis,
-    value   :: Maybe Rational
+    comment     :: Maybe String,
+    name        :: Maybe String,
+    hotspot     :: Maybe Emphasis,
+    value       :: Maybe Rational,
+    judgment    :: Maybe (Judgment, Emphasis)
     } deriving (Eq, Ord, Show, Read)
-emptyAnnotation = Annotation Nothing Nothing Nothing Nothing
+emptyAnnotation = Annotation Nothing Nothing Nothing Nothing Nothing
 
 data Markup = Markup deriving (Eq, Ord, Show, Read)
 emptyMarkup = Markup

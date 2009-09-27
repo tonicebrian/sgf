@@ -1,3 +1,4 @@
+-- TODO: check that every occurrence of "die" should really be a death, and not just a "fix-it-up-and-warn"
 -- boilerplate {{{
 {-# LANGUAGE NoMonomorphismRestriction #-}
 module SGF.Parse where
@@ -36,8 +37,8 @@ translate trans state = case runStateT (runWriterT trans) state of
     Left e                       -> setPosition (errorPosition e) >> fail (show e)
     Right ((a, warnings), _)     -> return (a, warnings)
 
--- TODO: delete the commented-out test code
---collection = mapM (translate (consume "AAA" >>= transMap real)) =<< Raw.collection
+-- TODO: delete "test"
+test = runParser collection () "<interactive>" . map enum
 collection = second concat . unzip <$> (mapM (translate gameTree) =<< Raw.collection)
 gameTree = do
     hea <- parseHeader
@@ -284,11 +285,15 @@ setupFinish addBlack addWhite remove =
 -- }}}
 -- none properties {{{
 annotation header = do
-    comment <- transMap (text   header) =<< consume "C"
-    name    <- transMap (simple header) =<< consume "N"
-    hotspot <- transMap double          =<< consume "HO"
-    value   <- transMap real            =<< consume "V"
-    return Annotation { T.comment = comment, T.name = name, T.hotspot = hotspot, T.value = value }
+    comment     <- transMap (text   header) =<< consume "C"
+    name        <- transMap (simple header) =<< consume "N"
+    hotspot     <- transMap double          =<< consume "HO"
+    value       <- transMap real            =<< consume "V"
+    judgments'  <- mapM (transMap double <=< consume) ["GW", "GB", "DM", "UC"]
+    let judgments = [(j, e) | (j, Just e) <- zip [GoodForWhite .. Unclear] judgments']
+    tell . map ExtraPositionalJudgmentOmitted . drop 1 $ judgments
+    return Annotation { T.comment = comment, T.name = name, T.hotspot = hotspot, T.value = value, T.judgment = listToMaybe judgments }
+
 markup = return emptyMarkup
 -- }}}
 -- known properties list {{{
