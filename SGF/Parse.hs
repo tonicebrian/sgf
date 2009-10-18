@@ -305,16 +305,24 @@ markup header point = do
     markedPoints <- mapM (transMapList (listOfPoint point)) ["CR", "MA", "SL", "SQ", "TR"]
     marks <- foldM addMarks Map.empty . zip [Circle ..] $ markedPoints
     label <- transMapList (listOf (compose point (simple header))) "LB"
+    arrows <- transMapList (listOf (join compose point)) "AR"
+    lines <- transMapList (listOf (join compose point)) "LN"
     dim   <- transMapMulti (listOfPoint point) "DD"
 
     let duplicateLabels = label \\ nubBy (on (==) fst) label
     when (not . null $ duplicateLabels) (tell . map DuplicateLabelOmitted $ duplicateLabels)
+    -- TODO: some kind of warning when omitting arrows and lines
 
     return Markup {
         T.marks     = marks,
         T.label     = Map.fromList label,
+        T.arrows    = prune arrows,
+        T.lines     = prune . map canonicalize $ lines,
         T.dim       = fmap Set.fromList dim
     }
+    where
+    prune = Set.fromList . filter (uncurry (/=))
+    canonicalize (x, y) = (min x y, max x y)
 -- }}}
 -- known properties list {{{
 data PropertyType = Move | Setup | Root | GameInfo | Inherit | None deriving (Eq, Ord, Show, Read, Enum, Bounded)

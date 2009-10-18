@@ -192,6 +192,8 @@ emptyAnnotation = Annotation Nothing Nothing Nothing Nothing Nothing
 data Markup = Markup {
     marks       :: Map Point Mark,
     label       :: Map Point String,
+    arrows      :: Set (Point, Point),
+    lines       :: Set (Point, Point),
     dim         :: Maybe (Set Point) -- inherit
     } deriving (Eq, Ord, Show, Read)
-emptyMarkup = Markup Map.empty Map.empty Nothing
+emptyMarkup = Markup Map.empty Map.empty Set.empty Set.empty Nothing
