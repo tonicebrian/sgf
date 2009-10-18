@@ -11,6 +11,7 @@ import Control.Monad.State
 import Control.Monad.Writer
 import Data.Char
 import Data.Encoding
+import Data.Function
 import Data.List
 import Data.List.Split
 import Data.Maybe
@@ -300,11 +301,20 @@ addMarks marks (mark, points) = tell warning >> return result where
     warning = map (DuplicateMarkupOmitted . (,) mark) ignored
     result  = marks `Map.union` Map.fromList [(i, mark) | i <- inserted]
 
-markup point = do
+markup header point = do
     markedPoints <- mapM (transMapList (listOfPoint point)) ["CR", "MA", "SL", "SQ", "TR"]
     marks <- foldM addMarks Map.empty . zip [Circle ..] $ markedPoints
+    label <- transMapList (listOf (compose point (simple header))) "LB"
     dim   <- transMapMulti (listOfPoint point) "DD"
-    return Markup { T.marks = marks, T.dim = fmap Set.fromList dim }
+
+    let duplicateLabels = label \\ nubBy (on (==) fst) label
+    when (not . null $ duplicateLabels) (tell . map DuplicateLabelOmitted $ duplicateLabels)
+
+    return Markup {
+        T.marks     = marks,
+        T.label     = Map.fromList label,
+        T.dim       = fmap Set.fromList dim
+    }
 -- }}}
 -- known properties list {{{
 data PropertyType = Move | Setup | Root | GameInfo | Inherit | None deriving (Eq, Ord, Show, Read, Enum, Bounded)
@@ -399,7 +409,7 @@ nodeGo header size seenGameInfo = do
     ruleSet_      <- ruleSet ruleSetGo Nothing header
     action_       <- if hasMove then liftM Right $ move (moveGo size) else liftM Left $ setupPoint pointGo
     annotation_   <- annotation header
-    markup_       <- markup pointGo
+    markup_       <- markup header pointGo
     unknown_      <- unknownProperties
     children      <- gets subForest >>= mapM (\s -> put s >> nodeGo header size (seenGameInfo || hasGameInfo))
 

@@ -79,6 +79,7 @@ data Warning
     | ExtraPositionalJudgmentOmitted    (Judgment, Emphasis)
     | DuplicateMarkupOmitted            (Mark, Point)
     | ExtraPropertyValuesOmitted        Property
+    | DuplicateLabelOmitted             (Point, String)
     deriving (Eq, Ord, Show)
 
 type State = Tree [Property]
