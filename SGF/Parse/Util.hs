@@ -93,7 +93,7 @@ transMapMulti f = consume       >=> transMap' f
 transMap' :: (a -> Translator b) -> (Maybe a -> Translator (Maybe b))
 transMap' f = maybe (return Nothing) (liftM Just . f)
 
-transMapList :: PTranslator [b] -> String -> Translator [b]
+transMapList :: PTranslator [a] -> String -> Translator [a]
 transMapList f = consume >=> maybe (return []) f
 -- }}}
 -- handy Translators {{{
