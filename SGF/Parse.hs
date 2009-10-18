@@ -303,11 +303,11 @@ addMarks marks (mark, points) = tell warning >> return result where
 
 markup header point = do
     markedPoints <- mapM (transMapList (listOfPoint point)) ["CR", "MA", "SL", "SQ", "TR"]
-    marks <- foldM addMarks Map.empty . zip [Circle ..] $ markedPoints
-    label <- transMapList (listOf (compose point (simple header))) "LB"
-    arrows <- transMapList (listOf (join compose point)) "AR"
-    lines <- transMapList (listOf (join compose point)) "LN"
-    dim   <- transMapMulti (listOfPoint point) "DD"
+    marks        <- foldM addMarks Map.empty . zip [Circle ..] $ markedPoints
+    label        <- transMapList (listOf (compose point (simple header))) "LB"
+    arrows       <- consumePointPairs "AR"
+    lines        <- consumePointPairs "LN"
+    dim          <- transMapMulti (listOfPoint point) "DD"
 
     let duplicateLabels = label \\ nubBy (on (==) fst) label
     when (not . null $ duplicateLabels) (tell . map DuplicateLabelOmitted $ duplicateLabels)
@@ -321,6 +321,7 @@ markup header point = do
         T.dim       = fmap Set.fromList dim
     }
     where
+    consumePointPairs = transMapList (listOf (join compose point))
     prune = Set.fromList . filter (uncurry (/=))
     canonicalize (x, y) = (min x y, max x y)
 -- }}}

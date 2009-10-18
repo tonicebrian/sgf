@@ -194,6 +194,6 @@ data Markup = Markup {
     label       :: Map Point String,
     arrows      :: Set (Point, Point),
     lines       :: Set (Point, Point),
-    dim         :: Maybe (Set Point) -- inherit
+    dim         :: Maybe (Set Point) -- inherit, default Set.empty
     } deriving (Eq, Ord, Show, Read)
 emptyMarkup = Markup Map.empty Map.empty Set.empty Set.empty Nothing
