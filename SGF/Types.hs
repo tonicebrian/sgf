@@ -56,6 +56,7 @@ data InitialPosition    = Beginning | End           deriving (Eq, Ord, Show, Rea
 data RankScale          = Kyu | Dan | Pro           deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data Judgment           = GoodForWhite | GoodForBlack | Even | Unclear              deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data Mark               = Circle | X | Selected | Square | Triangle                 deriving (Eq, Ord, Show, Read, Enum, Bounded)
+data Numbering          = Unnumbered | Numbered | Modulo100                         deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data ViewerSetting      = Tried | Marked | LastMove | Headings | Lock               deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data InitialPlacement   = Standard | ScrambledEggs | Parachute | Gemma | Custom     deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data RuleSetGo          = AGA | GOE | Chinese | Japanese | NewZealand               deriving (Eq, Ord, Show, Read, Enum, Bounded)
@@ -194,6 +195,8 @@ data Markup = Markup {
     label       :: Map Point String,
     arrows      :: Set (Point, Point),
     lines       :: Set (Point, Point),
-    dim         :: Maybe (Set Point) -- inherit, default Set.empty
+    dim         :: Maybe (Set Point), -- inherit, default Set.empty
+    visible     :: Maybe (Set Point), -- inherit, default to the whole board
+    numbering   :: Maybe Numbering    -- inherit, default Numbered
     } deriving (Eq, Ord, Show, Read)
-emptyMarkup = Markup Map.empty Map.empty Set.empty Set.empty Nothing
+emptyMarkup = Markup Map.empty Map.empty Set.empty Set.empty Nothing Nothing Nothing

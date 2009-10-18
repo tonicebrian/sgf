@@ -22,12 +22,14 @@ import SGF.Parse.Encodings
 import SGF.Parse.Raw
 import SGF.Types hiding (name)
 -- }}}
--- new types: Header, Error, Warning, State, Translator a, PTranslator a {{{
+-- new types {{{
+-- Header {{{
 data Header = Header {
     format   :: Integer,
     encoding :: DynEncoding
 }
-
+-- }}}
+-- Error {{{
 data ErrorType
     = UnknownEncoding
     | AmbiguousEncoding
@@ -60,7 +62,8 @@ die           = lift . StateT . const . Left
 dieWithPos  e = die . KnownError e
 dieWith     e = dieWithPos e . position
 dieWithJust e = dieWith e . fromJust
-
+-- }}}
+-- Warning {{{
 -- by convention, a warning that does not end in a verb just "did the right thing" to correct the problem
 data Warning
     = DuplicatePropertyOmitted          Property
@@ -80,8 +83,10 @@ data Warning
     | DuplicateMarkupOmitted            (Mark, Point)
     | ExtraPropertyValuesOmitted        Property
     | DuplicateLabelOmitted             (Point, String)
+    | UnknownNumberingIgnored           Integer
     deriving (Eq, Ord, Show)
-
+-- }}}
+-- State, Translator a, PTranslator a {{{
 type State = Tree [Property]
 type  Translator a = WriterT [Warning] (StateT State (Either Error)) a
 type PTranslator a = Property -> Translator a
@@ -95,6 +100,7 @@ transMap' f = maybe (return Nothing) (liftM Just . f)
 
 transMapList :: PTranslator [a] -> String -> Translator [a]
 transMapList f = consume >=> maybe (return []) f
+-- }}}
 -- }}}
 -- handy Translators {{{
 -- helper functions {{{

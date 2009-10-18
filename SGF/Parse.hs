@@ -307,10 +307,12 @@ markup header point = do
     label        <- transMapList (listOf (compose point (simple header))) "LB"
     arrows       <- consumePointPairs "AR"
     lines        <- consumePointPairs "LN"
-    dim          <- transMapMulti (listOfPoint point) "DD"
+    dim          <- transMapMulti ( listOfPoint point) "DD"
+    visible      <- transMapMulti (elistOfPoint point) "VW"
+    numbering    <- transMap number "PM"
 
-    let duplicateLabels = label \\ nubBy (on (==) fst) label
-    when (not . null $ duplicateLabels) (tell . map DuplicateLabelOmitted $ duplicateLabels)
+    tell . map DuplicateLabelOmitted $ label \\ nubBy (on (==) fst) label
+    tell [UnknownNumberingIgnored n | Just n <- [numbering], n < 0 || n > 2]
     -- TODO: some kind of warning when omitting arrows and lines
 
     return Markup {
@@ -318,7 +320,9 @@ markup header point = do
         T.label     = Map.fromList label,
         T.arrows    = prune arrows,
         T.lines     = prune . map canonicalize $ lines,
-        T.dim       = fmap Set.fromList dim
+        T.dim       = fmap Set.fromList dim,
+        T.numbering = numbering >>= flip lookup (zip [0..] [Unnumbered ..]),
+        T.visible   = fmap Set.fromList visible
     }
     where
     consumePointPairs = transMapList (listOf (join compose point))
