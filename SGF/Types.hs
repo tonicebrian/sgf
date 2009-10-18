@@ -123,7 +123,7 @@ type NodeBackgammon    = GameNode ()     ()    RuleSetBackgammon GameInfoBackgam
 type NodeLinesOfAction = GameNode ()     ()    Void              GameInfoLinesOfAction
 type NodeHex           = GameNode ()     ()    Void              GameInfoHex
 type NodeOcti          = GameNode ()     ()    RuleSetOcti       GameInfoOcti
-type NodeOther         = GameNode ()     ()    Void              ()
+type NodeOther         = GameNode [Word8] [Word8] Void              ()
 
 data Move move = Move {
     move                :: Maybe (Color, move),
@@ -147,6 +147,7 @@ data Setup stone = Setup {
     } deriving (Eq, Ord, Show, Read)
 emptySetup = Setup Set.empty Set.empty Set.empty Nothing
 
+-- TODO: maybe turn coalesce all the String entries into a map from a custom enumeration?
 data GameInfo ruleSet extra = GameInfo {
     rankBlack       :: Maybe Rank,
     rankWhite       :: Maybe Rank,
