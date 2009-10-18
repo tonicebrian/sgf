@@ -85,19 +85,19 @@ application         :: Header -> Translator (Maybe (String, String))
 gameType            :: Translator GameType
 variationType       :: Translator (Maybe (VariationType, AutoMarkup))
 size                :: GameType -> Translator (Maybe (Integer, Integer))
-application header  = consumeSingle "AP" >>= transMap (join compose (simple header))
-gameType            = do
+application = flip transMap "AP" . join compose . simple
+gameType    = do
     property <- consumeSingle "GM"
     gameType <- maybe (return 1) number property
     if enum (minBound :: GameType) <= gameType && gameType <= enum (maxBound :: GameType)
         then return (enum gameType)
         else dieWithJust OutOfBounds property
-variationType = consumeSingle "ST" >>= \p -> transMap (number >=> variationType' p) p where
+variationType = transMap (\p -> number p >>= variationType' p) "ST" where
     variationType' property 0 = return (T.Children, True )
     variationType' property 1 = return (T.Siblings, True )
     variationType' property 2 = return (T.Children, False)
     variationType' property 3 = return (T.Siblings, False)
-    variationType' property _ = dieWithJust OutOfBounds property
+    variationType' property _ = dieWith OutOfBounds property
 size gameType = do
     property <- consumeSingle "SZ"
     case property of
@@ -146,7 +146,7 @@ consumeSimpleGameInfo h g (p, u) = consumeUpdateGameInfo id u p h g
 consumeUpdateGameInfo            = consumeUpdateGameInfoMaybe . (return .)
 consumeUpdateGameInfoMaybe fromString update property header gameInfo = do
     maybeProp   <- consumeSingle property
-    maybeString <- transMap (simple header) maybeProp
+    maybeString <- transMap' (simple header) maybeProp
     case (maybeProp, maybeString >>= fromString) of
         (Nothing, _) -> return gameInfo
         (_, Nothing) -> dieWithJust BadlyFormattedValue maybeProp
@@ -181,7 +181,7 @@ result (c:'+':score) = liftM2 Win maybeColor maybeWinType where
 
 result s = lookup (map toLower s) [("0", Draw), ("draw", Draw), ("void", Void), ("?", Unknown)]
 
-timeLimit gameInfo = fmap (\v -> gameInfo { T.timeLimit = v }) (transMap real =<< consumeSingle "TM")
+timeLimit gameInfo = fmap (\v -> gameInfo { T.timeLimit = v }) (transMap real "TM")
 
 date = expect [] . splitWhen (== ',') where
     expect parsers [] = return []
@@ -233,9 +233,9 @@ round s = case words s of
 -- }}}
 -- move properties {{{
 move move = do
-    color_                                              <- mapM has                           ["B", "W"]
-    [number_, overtimeMovesBlack_, overtimeMovesWhite_] <- mapM (consume >=> transMap number) ["MN", "OB", "OW"]
-    [timeBlack_, timeWhite_]                            <- mapM (consume >=> transMap real  ) ["BL", "WL"]
+    color_                                              <- mapM has ["B", "W"]
+    [number_, overtimeMovesBlack_, overtimeMovesWhite_] <- mapM (transMap number) ["MN", "OB", "OW"]
+    [timeBlack_, timeWhite_]                            <- mapM (transMap real  ) ["BL", "WL"]
     let partialMove = emptyMove {
             T.number                = number_,
             T.timeBlack             = timeBlack_,
@@ -247,15 +247,15 @@ move move = do
         [False, False] -> warnAll MovelessAnnotationOmitted ["KO", "BM", "DO", "IT", "TE"] >> return partialMove
         [True , True ] -> dieEarliest ConcurrentBlackAndWhiteMove ["B", "W"]
         [black, white] -> let color = if black then Black else White in do
-            Just move   <- transMap move =<< (fmap msum . mapM consume $ ["B", "W"])
-            illegal     <- fmap (maybe Possibly (const Definitely)) $ transMap none =<< consume "KO"
+            Just move   <- fmap msum . mapM (transMap move) $ ["B", "W"]
+            illegal     <- fmap (maybe Possibly (const Definitely)) (transMap none "KO")
             annotations <- mapM has ["BM", "DO", "IT", "TE"]
             quality     <- case annotations of
                 [False, False, False, False] -> return Nothing
-                [True , False, False, False] -> fmap (fmap Bad ) $ transMap double =<< consume "BM"
-                [False, False, False, True ] -> fmap (fmap Good) $ transMap double =<< consume "TE"
-                [False, True , False, False] -> consume "DO" >>= transMap none >> return (Just Doubtful   )
-                [False, False, True , False] -> consume "IT" >>= transMap none >> return (Just Interesting)
+                [True , False, False, False] -> fmap (fmap Bad ) (transMap double "BM")
+                [False, False, False, True ] -> fmap (fmap Good) (transMap double "TE")
+                [False, True , False, False] -> transMap none "DO" >> return (Just Doubtful   )
+                [False, False, True , False] -> transMap none "IT" >> return (Just Interesting)
                 _                            -> dieEarliest ConcurrentAnnotations ["BM", "DO", "IT", "TE"]
             return partialMove { T.move = Just (color, move), T.illegal = illegal, T.quality = quality }
 -- }}}
@@ -271,26 +271,26 @@ setupPoint point = do
     unless (null duplicates) (tell [DuplicateSetupOperationsOmitted duplicates])
     setupFinish addBlack addWhite' remove'
     where
-    points = transMapList (listOfPoint point) <=< consume
+    points = transMapList (listOfPoint point)
 
 -- note: does not (cannot, in general) check the constraint that addBlack,
 -- addWhite, and remove specify disjoint sets of points
 setupPointStone point stone = do
-    addBlack <- transMapList (listOf      stone) =<< consume "AB"
-    addWhite <- transMapList (listOf      stone) =<< consume "AW"
-    remove   <- transMapList (listOfPoint point) =<< consume "AE"
+    addBlack <- transMapList (listOf      stone) "AB"
+    addWhite <- transMapList (listOf      stone) "AW"
+    remove   <- transMapList (listOfPoint point) "AE"
     setupFinish addBlack addWhite remove
 
 setupFinish addBlack addWhite remove =
-    liftM (T.Setup addBlack addWhite remove) (transMap color =<< consume "PL")
+    liftM (T.Setup addBlack addWhite remove) (transMap color "PL")
 -- }}}
 -- none properties {{{
 annotation header = do
-    comment     <- transMap (text   header) =<< consume "C"
-    name        <- transMap (simple header) =<< consume "N"
-    hotspot     <- transMap double          =<< consume "HO"
-    value       <- transMap real            =<< consume "V"
-    judgments'  <- mapM (transMap double <=< consume) ["GW", "GB", "DM", "UC"]
+    comment     <- transMap (text   header) "C"
+    name        <- transMap (simple header) "N"
+    hotspot     <- transMap double          "HO"
+    value       <- transMap real            "V"
+    judgments'  <- mapM (transMap double) ["GW", "GB", "DM", "UC"]
     let judgments = [(j, e) | (j, Just e) <- zip [GoodForWhite ..] judgments']
     tell . map ExtraPositionalJudgmentOmitted . drop 1 $ judgments
     return Annotation { T.comment = comment, T.name = name, T.hotspot = hotspot, T.value = value, T.judgment = listToMaybe judgments }
@@ -301,7 +301,7 @@ addMarks marks (mark, points) = tell warning >> return result where
     result  = marks `Map.union` Map.fromList [(i, mark) | i <- inserted]
 
 markup point = do
-    markedPoints <- mapM (transMapList (listOfPoint point) <=< consume) ["CR", "MA", "SL", "SQ", "TR"]
+    markedPoints <- mapM (transMapList (listOfPoint point)) ["CR", "MA", "SL", "SQ", "TR"]
     marks <- foldM addMarks Map.empty . zip [Circle ..] $ markedPoints
     return Markup { T.marks = marks }
 -- }}}
@@ -349,7 +349,7 @@ ruleSetOcti s = case break (== ':') s of
     minorVariations     = map minorVariation . splitWhen (== ',')
 
 ruleSet read maybeDefault header = do
-    maybeRulesetString <- transMap (simple header) =<< consumeSingle "RU"
+    maybeRulesetString <- transMap (simple header) "RU"
     return $ case (maybeRulesetString, maybeRulesetString >>= read) of
         (Nothing, _      ) -> fmap Known maybeDefault
         (Just s , Nothing) -> Just (OtherRuleSet s)
@@ -371,7 +371,7 @@ extraProperties Octi          GameInfo = ["BO", "WO", "NP", "NR", "NS"]
 extraProperties Octi          None     = ["AS", "CS", "MS", "SS", "TS"]
 extraProperties _             _        = []
 
-gameInfoGo = liftM2 GameInfoGo (consume "HA" >>= transMap number) (consume "KM" >>= transMap real)
+gameInfoGo = liftM2 GameInfoGo (transMap number "HA") (transMap real "KM")
 
 pointGo (Property { values = [[x, y]] }) | valid x && valid y = return (translate x, translate y)
     where

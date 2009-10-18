@@ -1,7 +1,3 @@
--- TODO:
--- * switch consumeSingle from an error to a warning
--- * switch almost everybody over from consume to consumeSingle
--- * switch transMap to call consumeSingle, and add transMapMulti
 -- boilerplate {{{
 module SGF.Parse.Util where
 
@@ -37,7 +33,6 @@ data ErrorType
     | AmbiguousEncoding
     | FormatUnsupported
     | GameUnsupported
-    | ExtraPropertyValues
     | OutOfBounds
     | BadlyFormattedValue
     | BadlyEncodedValue
@@ -83,18 +78,21 @@ data Warning
     | DuplicateSetupOperationsOmitted   [Point]
     | ExtraPositionalJudgmentOmitted    (Judgment, Emphasis)
     | DuplicateMarkupOmitted            (Mark, Point)
+    | ExtraPropertyValuesOmitted        Property
     deriving (Eq, Ord, Show)
 
 type State = Tree [Property]
-type Translator a = WriterT [Warning] (StateT State (Either Error)) a
-
-transMap :: (a -> Translator b) -> (Maybe a -> Translator (Maybe b))
-transMap f = maybe (return Nothing) (liftM Just . f)
-
-transMapList :: (a -> Translator [b]) -> (Maybe a -> Translator [b])
-transMapList = maybe (return [])
-
+type  Translator a = WriterT [Warning] (StateT State (Either Error)) a
 type PTranslator a = Property -> Translator a
+
+transMap :: PTranslator a -> String -> Translator (Maybe a)
+transMap f = consumeSingle >=> transMap' f
+
+transMap' :: (a -> Translator b) -> (Maybe a -> Translator (Maybe b))
+transMap' f = maybe (return Nothing) (liftM Just . f)
+
+transMapList :: PTranslator [b] -> String -> Translator [b]
+transMapList f = consume >=> maybe (return []) f
 -- }}}
 -- handy Translators {{{
 -- helper functions {{{
@@ -178,7 +176,9 @@ consumeSingle :: String -> Translator (Maybe Property)
 consumeSingle s = do
     maybeProperty <- consume s
     case maybeProperty of
-        Just (Property { values = (_:_:_) }) -> dieWithJust ExtraPropertyValues maybeProperty
+        Just p@(Property { values = (v:_:_) }) -> do
+            tell [ExtraPropertyValuesOmitted p]
+            return (Just p { values = [v] })
         _ -> return maybeProperty
 
 unknownProperties :: Translator (Map String [[Word8]])
