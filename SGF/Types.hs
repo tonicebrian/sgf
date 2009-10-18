@@ -1,18 +1,23 @@
+-- boilerplate {{{
 {-# LANGUAGE EmptyDataDecls #-}
 module SGF.Types where
 
 import Data.List
-import Data.Map hiding (findIndex)
+import Data.Map hiding (empty, findIndex)
 import Data.Maybe
+import Data.Set hiding (empty)
 import Data.Tree
 import Data.Word
+
+import qualified Data.Map as Map
+import qualified Data.Set as Set
 
 data Void
 instance Eq   Void where _ == _ = True
 instance Ord  Void where compare _ _ = EQ
 instance Read Void where readsPrec _ _ = []
 instance Show Void where show _  = ""
-
+-- }}}
 data GameType =
     Go | Othello | Chess | Gomoku | NineMen'sMorris |
     Backgammon | ChineseChess | Shogi | LinesOfAction | Ataxx |
@@ -111,7 +116,7 @@ data GameNode move stone ruleSet extraGameInfo = GameNode {
     markup      :: Markup,
     unknown     :: Map String [[Word8]]
     } deriving (Eq, Ord, Show, Read)
-emptyGameNode = GameNode Nothing (Left emptySetup) emptyAnnotation emptyMarkup empty
+emptyGameNode = GameNode Nothing (Left emptySetup) emptyAnnotation emptyMarkup Map.empty
 
 type NodeGo            = GameNode MoveGo Point RuleSetGo         GameInfoGo
 type NodeBackgammon    = GameNode ()     ()    RuleSetBackgammon GameInfoBackgammon
@@ -135,12 +140,12 @@ emptyMove = Move Nothing Possibly Nothing Nothing Nothing Nothing Nothing Nothin
 data MoveGo = Pass | Play Point deriving (Eq, Ord, Show, Read)
 
 data Setup stone = Setup {
-    addBlack :: [stone], -- TODO: all of these should probably be Set instead of []
-    addWhite :: [stone],
-    remove   :: [Point],
+    addBlack :: Set stone,
+    addWhite :: Set stone,
+    remove   :: Set Point,
     toPlay   :: Maybe Color
     } deriving (Eq, Ord, Show, Read)
-emptySetup = Setup [] [] [] Nothing
+emptySetup = Setup Set.empty Set.empty Set.empty Nothing
 
 data GameInfo ruleSet extra = GameInfo {
     rankBlack       :: Maybe Rank,
@@ -186,4 +191,4 @@ emptyAnnotation = Annotation Nothing Nothing Nothing Nothing Nothing
 data Markup = Markup {
     marks       :: Map Point Mark
     } deriving (Eq, Ord, Show, Read)
-emptyMarkup = Markup empty
+emptyMarkup = Markup Map.empty

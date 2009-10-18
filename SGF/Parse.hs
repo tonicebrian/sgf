@@ -261,13 +261,12 @@ move move = do
 -- }}}
 -- setup properties {{{
 setupPoint point = do
-    addBlack <- points "AB"
-    addWhite <- points "AW"
-    remove   <- points "AE"
-    let allPoints  = addBlack ++ addWhite ++ remove
-        duplicates = allPoints \\ nub allPoints
-        addWhite'  = addWhite  \\ addBlack
-        remove'    = remove    \\ (addBlack ++ addWhite')
+    points <- mapM (transMapList (listOfPoint point)) ["AB", "AW", "AE"]
+    let [addBlack, addWhite, remove] = map Set.fromList points
+        allPoints  = addBlack `Set.union` addWhite `Set.union` remove
+        duplicates = concat points \\ Set.elems allPoints
+        addWhite'  = addWhite  Set.\\ addBlack
+        remove'    = remove    Set.\\ (addBlack `Set.union` addWhite')
     unless (null duplicates) (tell [DuplicateSetupOperationsOmitted duplicates])
     setupFinish addBlack addWhite' remove'
     where
@@ -275,11 +274,12 @@ setupPoint point = do
 
 -- note: does not (cannot, in general) check the constraint that addBlack,
 -- addWhite, and remove specify disjoint sets of points
+-- TODO: what, really, cannot?  even if we allow ourselves a class constraint or something?
 setupPointStone point stone = do
     addBlack <- transMapList (listOf      stone) "AB"
     addWhite <- transMapList (listOf      stone) "AW"
     remove   <- transMapList (listOfPoint point) "AE"
-    setupFinish addBlack addWhite remove
+    setupFinish (Set.fromList addBlack) (Set.fromList addWhite) (Set.fromList remove)
 
 setupFinish addBlack addWhite remove =
     liftM (T.Setup addBlack addWhite remove) (transMap color "PL")
