@@ -118,11 +118,11 @@ data GameNode move stone ruleSet extraGameInfo = GameNode {
     } deriving (Eq, Ord, Show, Read)
 emptyGameNode = GameNode Nothing (Left emptySetup) emptyAnnotation emptyMarkup Map.empty
 
-type NodeGo            = GameNode MoveGo Point RuleSetGo         GameInfoGo
-type NodeBackgammon    = GameNode ()     ()    RuleSetBackgammon GameInfoBackgammon
-type NodeLinesOfAction = GameNode ()     ()    Void              GameInfoLinesOfAction
-type NodeHex           = GameNode ()     ()    Void              GameInfoHex
-type NodeOcti          = GameNode ()     ()    RuleSetOcti       GameInfoOcti
+type NodeGo            = GameNode MoveGo  Point   RuleSetGo         GameInfoGo
+type NodeBackgammon    = GameNode ()      ()      RuleSetBackgammon GameInfoBackgammon
+type NodeLinesOfAction = GameNode ()      ()      Void              GameInfoLinesOfAction
+type NodeHex           = GameNode ()      ()      Void              GameInfoHex
+type NodeOcti          = GameNode ()      ()      RuleSetOcti       GameInfoOcti
 type NodeOther         = GameNode [Word8] [Word8] Void              ()
 
 data Move move = Move {
