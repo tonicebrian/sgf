@@ -85,8 +85,9 @@ type State = Tree [Property]
 type  Translator a = WriterT [Warning] (StateT State (Either Error)) a
 type PTranslator a = Property -> Translator a
 
-transMap :: PTranslator a -> String -> Translator (Maybe a)
-transMap f = consumeSingle >=> transMap' f
+transMap, transMapMulti :: PTranslator a -> String -> Translator (Maybe a)
+transMap      f = consumeSingle >=> transMap' f
+transMapMulti f = consume       >=> transMap' f
 
 transMap' :: (a -> Translator b) -> (Maybe a -> Translator (Maybe b))
 transMap' f = maybe (return Nothing) (liftM Just . f)

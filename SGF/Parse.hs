@@ -303,7 +303,8 @@ addMarks marks (mark, points) = tell warning >> return result where
 markup point = do
     markedPoints <- mapM (transMapList (listOfPoint point)) ["CR", "MA", "SL", "SQ", "TR"]
     marks <- foldM addMarks Map.empty . zip [Circle ..] $ markedPoints
-    return Markup { T.marks = marks }
+    dim   <- transMapMulti (listOfPoint point) "DD"
+    return Markup { T.marks = marks, T.dim = fmap Set.fromList dim }
 -- }}}
 -- known properties list {{{
 data PropertyType = Move | Setup | Root | GameInfo | Inherit | None deriving (Eq, Ord, Show, Read, Enum, Bounded)
