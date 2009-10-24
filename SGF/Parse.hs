@@ -118,7 +118,7 @@ size gameType = do
 -- }}}
 -- game-info properties {{{
 gameInfo header =
-        foldM (consumeSimpleGameInfo header) (emptyGameInfo ()) simpleGameInfo
+        foldM (consumeSimpleGameInfo header) emptyGameInfo simpleGameInfo
     >>= consumeUpdateGameInfo      rank   (\g v -> g { T.rankBlack = v }) "BR" header
     >>= consumeUpdateGameInfo      rank   (\g v -> g { T.rankWhite = v }) "WR" header
     >>= consumeUpdateGameInfo      round  (\g v -> g { T.round     = v }) "RO" header
@@ -295,7 +295,13 @@ annotation header = do
     judgments'  <- mapM (transMap double) ["GW", "GB", "DM", "UC"]
     let judgments = [(j, e) | (j, Just e) <- zip [GoodForWhite ..] judgments']
     tell . map ExtraPositionalJudgmentOmitted . drop 1 $ judgments
-    return Annotation { T.comment = comment, T.name = name, T.hotspot = hotspot, T.value = value, T.judgment = listToMaybe judgments }
+    return emptyAnnotation {
+        T.comment   = comment,
+        T.name      = name,
+        T.hotspot   = hotspot,
+        T.value     = value,
+        T.judgment  = listToMaybe judgments
+    }
 
 addMarks marks (mark, points) = tell warning >> return result where
     (ignored, inserted) = partition (`Map.member` marks) points
@@ -417,6 +423,10 @@ moveGo _             (Property { values = [[]] }) = return Pass
 moveGo (Just (w, h)) p                            = pointGo p >>= \v@(x, y) -> return $ if x > w || y > h then Pass else Play v
 moveGo _             p                            = fmap Play (pointGo p)
 
+annotationGo = do
+    territories <- mapM (transMap (elistOfPoint pointGo)) ["TB", "TW"]
+    return . Map.fromList $ [(c, Set.fromList t) | (c, Just t) <- zip [Black, White] territories]
+
 gameHex header seenGameInfo = fmap (TreeHex []) (nodeHex header seenGameInfo)
 
 nodeGo header size seenGameInfo = do
@@ -428,15 +438,16 @@ nodeGo header size seenGameInfo = do
     when hasRoot           warnRoot
 
     mGameInfo     <- liftM (\x -> guard setGameInfo >> Just x) (gameInfo header)
-    extraGameInfo <- gameInfoGo
+    otherGameInfo <- gameInfoGo
     ruleSet_      <- ruleSet ruleSetGo Nothing header
     action_       <- if hasMove then liftM Right $ move (moveGo size) else liftM Left $ setupPoint pointGo
     annotation_   <- annotation header
+    otherAnnotation <- annotationGo -- TODO: formatting
     markup_       <- markup header pointGo
     unknown_      <- unknownProperties
     children      <- gets subForest >>= mapM (\s -> put s >> nodeGo header size (seenGameInfo || hasGameInfo))
 
-    return (Node (GameNode (fmap (\gi -> gi { T.ruleSet = ruleSet_, T.other = extraGameInfo }) mGameInfo) action_ annotation_ markup_ unknown_) children)
+    return (Node (GameNode (fmap (\gi -> gi { T.ruleSet = ruleSet_, T.otherGameInfo = otherGameInfo }) mGameInfo) action_ annotation_ { T.otherAnnotation = otherAnnotation } markup_ unknown_) children)
     where
     dieSetupAndMove    = dieEarliest ConcurrentMoveAndSetup    (properties Go =<< [Setup, Move])
     warnGameInfo       = warnAll     ExtraGameInfoOmitted      (properties Go GameInfo)

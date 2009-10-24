@@ -190,9 +190,9 @@ data GameInfo ruleSet extra = GameInfo {
     ruleSet         :: Maybe (RuleSet ruleSet),
     timeLimit       :: Maybe Rational,
     result          :: Maybe GameResult,
-    other           :: extra
+    otherGameInfo   :: extra
     } deriving (Eq, Ord, Show, Read)
-emptyGameInfo = GameInfo Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing -- lololololol
+emptyGameInfo = GameInfo Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing () -- lololololol
 
 data GameInfoGo            = GameInfoGo             { handicap :: Maybe Integer, komi :: Maybe Rational }                                                                           deriving (Eq, Ord, Show, Read)
 data GameInfoBackgammon    = GameInfoBackgammon     { match :: Maybe [MatchInfo] }                                                                                                  deriving (Eq, Ord, Show, Read)
@@ -201,14 +201,17 @@ data GameInfoHex           = GameInfoHex            { initialPositionHex :: Mayb
 data GameInfoOcti          = GameInfoOcti           { squaresWhite :: Maybe [Point], squaresBlack :: Maybe [Point], prongs :: Integer, reserve :: Integer, superProngs :: Integer } deriving (Eq, Ord, Show, Read)
 -- }}}
 -- Annotation/Markup {{{
-data Annotation = Annotation {
+data Annotation extra = Annotation {
     comment     :: Maybe String,
     name        :: Maybe String,
     hotspot     :: Maybe Emphasis,
     value       :: Maybe Rational,
-    judgment    :: Maybe (Judgment, Emphasis)
+    judgment    :: Maybe (Judgment, Emphasis),
+    otherAnnotation :: extra
     } deriving (Eq, Ord, Show, Read)
-emptyAnnotation = Annotation Nothing Nothing Nothing Nothing Nothing
+emptyAnnotation = Annotation Nothing Nothing Nothing Nothing Nothing ()
+
+type AnnotationGo = Map Color (Set Point)
 
 data Markup = Markup {
     marks       :: Map Point Mark,
@@ -246,19 +249,19 @@ type TreeHex           = Tree NodeHex
 type TreeOcti          = Tree NodeOcti
 type TreeOther         = Tree NodeOther
 
-data GameNode move stone ruleSet extraGameInfo = GameNode {
+data GameNode move stone ruleSet extraGameInfo extraAnnotation = GameNode {
     gameInfo    :: Maybe (GameInfo ruleSet extraGameInfo),
     action      :: Either (Setup stone) (Move move),
-    annotation  :: Annotation,
+    annotation  :: Annotation extraAnnotation,
     markup      :: Markup,
     unknown     :: Map String [[Word8]]
     } deriving (Eq, Ord, Show, Read)
 emptyGameNode = GameNode Nothing (Left emptySetup) emptyAnnotation emptyMarkup Map.empty
 
-type NodeGo            = GameNode MoveGo  Point   RuleSetGo         GameInfoGo
-type NodeBackgammon    = GameNode ()      ()      RuleSetBackgammon GameInfoBackgammon
-type NodeLinesOfAction = GameNode ()      ()      Void              GameInfoLinesOfAction
-type NodeHex           = GameNode ()      ()      Void              GameInfoHex
-type NodeOcti          = GameNode ()      ()      RuleSetOcti       GameInfoOcti
-type NodeOther         = GameNode [Word8] [Word8] Void              ()
+type NodeGo            = GameNode MoveGo  Point   RuleSetGo         GameInfoGo              AnnotationGo
+type NodeBackgammon    = GameNode ()      ()      RuleSetBackgammon GameInfoBackgammon      ()
+type NodeLinesOfAction = GameNode ()      ()      Void              GameInfoLinesOfAction   ()
+type NodeHex           = GameNode ()      ()      Void              GameInfoHex             ()
+type NodeOcti          = GameNode ()      ()      RuleSetOcti       GameInfoOcti            ()
+type NodeOther         = GameNode [Word8] [Word8] Void              ()                      ()
 -- }}}
