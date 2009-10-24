@@ -437,15 +437,15 @@ nodeGo header size seenGameInfo = do
     when duplicateGameInfo warnGameInfo
     when hasRoot           warnRoot
 
-    mGameInfo     <- liftM (\x -> guard setGameInfo >> Just x) (gameInfo header)
-    otherGameInfo <- gameInfoGo
-    ruleSet_      <- ruleSet ruleSetGo Nothing header
-    action_       <- if hasMove then liftM Right $ move (moveGo size) else liftM Left $ setupPoint pointGo
-    annotation_   <- annotation header
-    otherAnnotation <- annotationGo -- TODO: formatting
-    markup_       <- markup header pointGo
-    unknown_      <- unknownProperties
-    children      <- gets subForest >>= mapM (\s -> put s >> nodeGo header size (seenGameInfo || hasGameInfo))
+    mGameInfo       <- liftM (\x -> guard setGameInfo >> Just x) (gameInfo header)
+    otherGameInfo   <- gameInfoGo
+    ruleSet_        <- ruleSet ruleSetGo Nothing header
+    action_         <- if hasMove then liftM Right $ move (moveGo size) else liftM Left $ setupPoint pointGo
+    annotation_     <- annotation header
+    otherAnnotation <- annotationGo
+    markup_         <- markup header pointGo
+    unknown_        <- unknownProperties
+    children        <- gets subForest >>= mapM (\s -> put s >> nodeGo header size (seenGameInfo || hasGameInfo))
 
     return (Node (GameNode (fmap (\gi -> gi { T.ruleSet = ruleSet_, T.otherGameInfo = otherGameInfo }) mGameInfo) action_ annotation_ { T.otherAnnotation = otherAnnotation } markup_ unknown_) children)
     where
@@ -453,9 +453,9 @@ nodeGo header size seenGameInfo = do
     warnGameInfo       = warnAll     ExtraGameInfoOmitted      (properties Go GameInfo)
     warnRoot           = warnAll     NestedRootPropertyOmitted (properties Go Root)
 
-nodeBackgammon    = nodeOther
-nodeLinesOfAction = nodeOther
-nodeHex           = nodeOther
-nodeOcti          = nodeOther
-nodeOther header seenGameInfo = return (Node emptyGameNode [])
+nodeBackgammon    = nodeOther -- TODO
+nodeLinesOfAction = nodeOther -- TODO
+nodeHex           = nodeOther -- TODO
+nodeOcti          = nodeOther -- TODO
+nodeOther header seenGameInfo = return (Node emptyGameNode []) -- TODO
 -- }}}
