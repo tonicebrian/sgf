@@ -19,6 +19,7 @@ instance Ord  Void where compare _ _ = EQ
 instance Read Void where readsPrec _ _ = []
 instance Show Void where show _  = ""
 -- }}}
+-- GameType {{{
 data GameType =
     Go | Othello | Chess | Gomoku | NineMen'sMorris |
     Backgammon | ChineseChess | Shogi | LinesOfAction | Ataxx |
@@ -42,12 +43,15 @@ allGameTypesInSGFOrder =
 instance Enum GameType where
     toEnum   n = allGameTypesInSGFOrder !! (n - 1)
     fromEnum t = (+1) . fromJust . findIndex (t==) $ allGameTypesInSGFOrder
-
+-- }}}
+-- type aliases {{{
 type Collection         = [Game]
 type Application        = String
 type Version            = String
 type Point              = (Integer, Integer) -- 0-indexed
 type AutoMarkup         = Bool
+-- }}}
+-- enums {{{
 data FuzzyBool          = Possibly  | Definitely    deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data VariationType      = Children  | Siblings      deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data Emphasis           = Normal    | Strong        deriving (Eq, Ord, Show, Read, Enum, Bounded)
@@ -59,18 +63,42 @@ data Judgment           = GoodForWhite | GoodForBlack | Even | Unclear          
 data Mark               = Circle | X | Selected | Square | Triangle                 deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data Numbering          = Unnumbered | Numbered | Modulo100                         deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data ViewerSetting      = Tried | Marked | LastMove | Headings | Lock               deriving (Eq, Ord, Show, Read, Enum, Bounded)
-data FigureFlag         = Coordinates | Name | HiddenMoves | RemoveCaptures | Hoshi deriving (Eq, Ord, Show, Read,       Bounded)
 data InitialPlacement   = Standard | ScrambledEggs | Parachute | Gemma | Custom     deriving (Eq, Ord, Show, Read, Enum, Bounded)
+-- }}}
+-- rulesets {{{
 data RuleSetGo          = AGA | GOE | Chinese | Japanese | NewZealand               deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data RuleSetBackgammon  = Crawford | CrawfordGame | Jacoby                          deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data RuleSetOcti        = OctiRuleSet MajorVariation [MinorVariation]               deriving (Eq, Ord, Show, Read)
 data MajorVariation     = Full | Fast | Kids                                        deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data MinorVariation     = Edgeless | Superprong | OtherMinorVariation String        deriving (Eq, Ord, Show, Read)
 data RuleSet a          = Known !a | OtherRuleSet String                            deriving (Eq, Ord, Show, Read)
+-- }}}
+-- misc types {{{
 data WinType            = Score Rational | Resign | Time | Forfeit | OtherWinType   deriving (Eq, Ord, Show, Read)
 data GameResult         = Draw | Void | Unknown | Win Color WinType                 deriving (Eq, Ord, Show, Read)
 data Quality            = Bad Emphasis | Doubtful | Interesting | Good Emphasis     deriving (Eq, Ord, Show, Read)
 data Rank               = Ranked Integer RankScale (Maybe Certainty) | OtherRank String         deriving (Eq, Ord, Show, Read)
+
+data Round = SimpleRound    Integer
+           | FormattedRound Integer String
+           | OtherRound             String
+    deriving (Eq, Ord, Show, Read)
+
+data MatchInfo = Length           Integer
+               | GameNumber       Integer
+               | StartScore Color Integer
+               | OtherMatchInfo String String
+    deriving (Eq, Ord, Show, Read)
+
+data PartialDate
+    = Year  { year :: Integer }
+    | Month { year :: Integer, month :: Integer }
+    | Day   { year :: Integer, month :: Integer, day :: Integer }
+    deriving (Eq, Ord, Show, Read)
+-- }}}
+-- Figure {{{
+-- FigureFlag {{{
+data FigureFlag         = Coordinates | Name | HiddenMoves | RemoveCaptures | Hoshi deriving (Eq, Ord, Show, Read,       Bounded)
 
 allFigureFlags :: [FigureFlag]
 allFigureFlags = [Coordinates, Name, HiddenMoves, RemoveCaptures, Hoshi]
@@ -92,30 +120,12 @@ instance Enum FigureFlag where
     succ       lo    = enumFrom lo !! 1
     pred       hi    = reverse (enumFromTo minBound hi) !! 1
     -- TODO: enumFromThen, enumFromThenTo
-
-data Round = SimpleRound    Integer
-           | FormattedRound Integer String
-           | OtherRound             String
-    deriving (Eq, Ord, Show, Read)
-
-data MatchInfo = Length           Integer
-               | GameNumber       Integer
-               | StartScore Color Integer
-               | OtherMatchInfo String String
-    deriving (Eq, Ord, Show, Read)
-
-data PartialDate
-    = Year  { year :: Integer }
-    | Month { year :: Integer, month :: Integer }
-    | Day   { year :: Integer, month :: Integer, day :: Integer }
-    deriving (Eq, Ord, Show, Read)
-
+-- }}}
 data Figure
     = DefaultFigure
     | NamedDefaultFigure String
     | NamedFigure String (FigureFlag -> Bool)
     deriving (Eq, Ord, Show, Read)
-
 -- function instances of Eq, Ord, Show, Read {{{
 mapFromFunction f = Map.fromList [(k, f k) | k <- [minBound..maxBound]]
 
@@ -131,7 +141,88 @@ instance (Bounded k, Enum k, Ord k, Eq v) => Eq (k -> v) where
 instance (Bounded k, Enum k, Ord k, Ord v) => Ord (k -> v) where
     compare = comparing mapFromFunction
 -- }}}
+-- }}}
+-- Move {{{
+data Move move = Move {
+    move                :: Maybe (Color, move),
+    illegal             :: FuzzyBool,
+    number              :: Maybe Integer,
+    quality             :: Maybe Quality,
+    timeBlack           :: Maybe Rational,
+    timeWhite           :: Maybe Rational,
+    overtimeMovesBlack  :: Maybe Integer,
+    overtimeMovesWhite  :: Maybe Integer
+    } deriving (Eq, Ord, Show, Read)
+emptyMove = Move Nothing Possibly Nothing Nothing Nothing Nothing Nothing Nothing
 
+data MoveGo = Pass | Play Point deriving (Eq, Ord, Show, Read)
+-- }}}
+-- Setup {{{
+data Setup stone = Setup {
+    addBlack :: Set stone,
+    addWhite :: Set stone,
+    remove   :: Set Point,
+    toPlay   :: Maybe Color
+    } deriving (Eq, Ord, Show, Read)
+emptySetup = Setup Set.empty Set.empty Set.empty Nothing
+-- }}}
+-- GameInfo {{{
+-- TODO: maybe turn coalesce all the String entries into a map from a custom enumeration?
+data GameInfo ruleSet extra = GameInfo {
+    rankBlack       :: Maybe Rank,
+    rankWhite       :: Maybe Rank,
+    teamNameBlack   :: Maybe String,
+    teamNameWhite   :: Maybe String,
+    playerNameBlack :: Maybe String,
+    playerNameWhite :: Maybe String,
+    annotator       :: Maybe String,
+    source          :: Maybe String,
+    user            :: Maybe String,
+    copyright       :: Maybe String,
+    date            :: Maybe [PartialDate], -- TODO: use Set PartialDate instead of Maybe [PartialDate]?
+    context         :: Maybe String,
+    location        :: Maybe String,
+    event           :: Maybe String,
+    round           :: Maybe Round,
+    game            :: Maybe String,
+    opening         :: Maybe String,
+    overtime        :: Maybe String,
+    ruleSet         :: Maybe (RuleSet ruleSet),
+    timeLimit       :: Maybe Rational,
+    result          :: Maybe GameResult,
+    other           :: extra
+    } deriving (Eq, Ord, Show, Read)
+emptyGameInfo = GameInfo Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing -- lololololol
+
+data GameInfoGo            = GameInfoGo             { handicap :: Maybe Integer, komi :: Maybe Rational }                                                                           deriving (Eq, Ord, Show, Read)
+data GameInfoBackgammon    = GameInfoBackgammon     { match :: Maybe [MatchInfo] }                                                                                                  deriving (Eq, Ord, Show, Read)
+data GameInfoLinesOfAction = GameInfoLinesOfAction  { initialPositionLOA :: InitialPosition, invertYAxis :: Bool, initialPlacement :: InitialPlacement }                            deriving (Eq, Ord, Show, Read)
+data GameInfoHex           = GameInfoHex            { initialPositionHex :: Maybe () }                                                                                              deriving (Eq, Ord, Show, Read)
+data GameInfoOcti          = GameInfoOcti           { squaresWhite :: Maybe [Point], squaresBlack :: Maybe [Point], prongs :: Integer, reserve :: Integer, superProngs :: Integer } deriving (Eq, Ord, Show, Read)
+-- }}}
+-- Annotation/Markup {{{
+data Annotation = Annotation {
+    comment     :: Maybe String,
+    name        :: Maybe String,
+    hotspot     :: Maybe Emphasis,
+    value       :: Maybe Rational,
+    judgment    :: Maybe (Judgment, Emphasis)
+    } deriving (Eq, Ord, Show, Read)
+emptyAnnotation = Annotation Nothing Nothing Nothing Nothing Nothing
+
+data Markup = Markup {
+    marks       :: Map Point Mark,
+    label       :: Map Point String,
+    arrows      :: Set (Point, Point),
+    lines       :: Set (Point, Point),
+    dim         :: Maybe (Set Point), -- inherit, default Set.empty
+    visible     :: Maybe (Set Point), -- inherit, default to the whole board
+    numbering   :: Maybe Numbering,   -- inherit, default Numbered
+    figure      :: Maybe Figure       -- TODO: be extra careful when documenting this, especially the "NamedFigure" constructor
+    } deriving (Eq, Ord, Show, Read)
+emptyMarkup = Markup Map.empty Map.empty Set.empty Set.empty Nothing Nothing Nothing Nothing
+-- }}}
+-- Game/GameNode/GameTree {{{
 data Game = Game {
     application     :: Maybe (Application, Version),
     variationType   :: Maybe (VariationType, AutoMarkup),
@@ -170,79 +261,4 @@ type NodeLinesOfAction = GameNode ()      ()      Void              GameInfoLine
 type NodeHex           = GameNode ()      ()      Void              GameInfoHex
 type NodeOcti          = GameNode ()      ()      RuleSetOcti       GameInfoOcti
 type NodeOther         = GameNode [Word8] [Word8] Void              ()
-
-data Move move = Move {
-    move                :: Maybe (Color, move),
-    illegal             :: FuzzyBool,
-    number              :: Maybe Integer,
-    quality             :: Maybe Quality,
-    timeBlack           :: Maybe Rational,
-    timeWhite           :: Maybe Rational,
-    overtimeMovesBlack  :: Maybe Integer,
-    overtimeMovesWhite  :: Maybe Integer
-    } deriving (Eq, Ord, Show, Read)
-emptyMove = Move Nothing Possibly Nothing Nothing Nothing Nothing Nothing Nothing
-
-data MoveGo = Pass | Play Point deriving (Eq, Ord, Show, Read)
-
-data Setup stone = Setup {
-    addBlack :: Set stone,
-    addWhite :: Set stone,
-    remove   :: Set Point,
-    toPlay   :: Maybe Color
-    } deriving (Eq, Ord, Show, Read)
-emptySetup = Setup Set.empty Set.empty Set.empty Nothing
-
--- TODO: maybe turn coalesce all the String entries into a map from a custom enumeration?
-data GameInfo ruleSet extra = GameInfo {
-    rankBlack       :: Maybe Rank,
-    rankWhite       :: Maybe Rank,
-    teamNameBlack   :: Maybe String,
-    teamNameWhite   :: Maybe String,
-    playerNameBlack :: Maybe String,
-    playerNameWhite :: Maybe String,
-    annotator       :: Maybe String,
-    source          :: Maybe String,
-    user            :: Maybe String,
-    copyright       :: Maybe String,
-    date            :: Maybe [PartialDate], -- TODO: use Set PartialDate instead of Maybe [PartialDate]?
-    context         :: Maybe String,
-    location        :: Maybe String,
-    event           :: Maybe String,
-    round           :: Maybe Round,
-    game            :: Maybe String,
-    opening         :: Maybe String,
-    overtime        :: Maybe String,
-    ruleSet         :: Maybe (RuleSet ruleSet),
-    timeLimit       :: Maybe Rational,
-    result          :: Maybe GameResult,
-    other           :: extra
-    } deriving (Eq, Ord, Show, Read)
-emptyGameInfo = GameInfo Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing -- lololololol
-
-data GameInfoGo            = GameInfoGo             { handicap :: Maybe Integer, komi :: Maybe Rational }                                                                           deriving (Eq, Ord, Show, Read)
-data GameInfoBackgammon    = GameInfoBackgammon     { match :: Maybe [MatchInfo] }                                                                                                  deriving (Eq, Ord, Show, Read)
-data GameInfoLinesOfAction = GameInfoLinesOfAction  { initialPositionLOA :: InitialPosition, invertYAxis :: Bool, initialPlacement :: InitialPlacement }                            deriving (Eq, Ord, Show, Read)
-data GameInfoHex           = GameInfoHex            { initialPositionHex :: Maybe () }                                                                                              deriving (Eq, Ord, Show, Read)
-data GameInfoOcti          = GameInfoOcti           { squaresWhite :: Maybe [Point], squaresBlack :: Maybe [Point], prongs :: Integer, reserve :: Integer, superProngs :: Integer } deriving (Eq, Ord, Show, Read)
-
-data Annotation = Annotation {
-    comment     :: Maybe String,
-    name        :: Maybe String,
-    hotspot     :: Maybe Emphasis,
-    value       :: Maybe Rational,
-    judgment    :: Maybe (Judgment, Emphasis)
-    } deriving (Eq, Ord, Show, Read)
-emptyAnnotation = Annotation Nothing Nothing Nothing Nothing Nothing
-
-data Markup = Markup {
-    marks       :: Map Point Mark,
-    label       :: Map Point String,
-    arrows      :: Set (Point, Point),
-    lines       :: Set (Point, Point),
-    dim         :: Maybe (Set Point), -- inherit, default Set.empty
-    visible     :: Maybe (Set Point), -- inherit, default to the whole board
-    numbering   :: Maybe Numbering,   -- inherit, default Numbered
-    figure      :: Maybe Figure       -- TODO: be extra careful when documenting this, especially the "NamedFigure" constructor
-    } deriving (Eq, Ord, Show, Read)
-emptyMarkup = Markup Map.empty Map.empty Set.empty Set.empty Nothing Nothing Nothing Nothing
+-- }}}
