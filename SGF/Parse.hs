@@ -9,6 +9,7 @@ import Control.Monad
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Writer
+import Data.Bits
 import Data.Char
 import Data.Encoding
 import Data.Function
@@ -310,6 +311,7 @@ markup header point = do
     dim          <- transMapMulti ( listOfPoint point) "DD"
     visible      <- transMapMulti (elistOfPoint point) "VW"
     numbering    <- transMap number "PM"
+    figure       <- transMap (figurePTranslator header) "FG"
 
     tell . map DuplicateLabelOmitted $ label \\ nubBy (on (==) fst) label
     tell [UnknownNumberingIgnored n | Just n <- [numbering], n < 0 || n > 2]
@@ -321,13 +323,21 @@ markup header point = do
         T.arrows    = prune arrows,
         T.lines     = prune . map canonicalize $ lines,
         T.dim       = fmap Set.fromList dim,
+        T.visible   = fmap Set.fromList visible,
         T.numbering = numbering >>= flip lookup (zip [0..] [Unnumbered ..]),
-        T.visible   = fmap Set.fromList visible
+        T.figure    = figure
     }
     where
     consumePointPairs = transMapList (listOf (join compose point))
     prune = Set.fromList . filter (uncurry (/=))
     canonicalize (x, y) = (min x y, max x y)
+
+figurePTranslator header (Property { values = [[]] }) = return DefaultFigure
+figurePTranslator header p = do
+    (flags, name) <- compose number (simple header) p
+    return $ if testBit flags 16
+             then NamedDefaultFigure name
+             else NamedFigure name (not . testBit flags . fromEnum)
 -- }}}
 -- known properties list {{{
 data PropertyType = Move | Setup | Root | GameInfo | Inherit | None deriving (Eq, Ord, Show, Read, Enum, Bounded)

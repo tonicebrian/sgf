@@ -3,9 +3,10 @@
 module SGF.Types where
 
 import Data.List
-import Data.Map hiding (empty, findIndex)
+import Data.Map hiding (empty, filter, findIndex)
 import Data.Maybe
-import Data.Set hiding (empty)
+import Data.Ord
+import Data.Set hiding (empty, filter)
 import Data.Tree
 import Data.Word
 
@@ -58,6 +59,7 @@ data Judgment           = GoodForWhite | GoodForBlack | Even | Unclear          
 data Mark               = Circle | X | Selected | Square | Triangle                 deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data Numbering          = Unnumbered | Numbered | Modulo100                         deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data ViewerSetting      = Tried | Marked | LastMove | Headings | Lock               deriving (Eq, Ord, Show, Read, Enum, Bounded)
+data FigureFlag         = Coordinates | Name | HiddenMoves | RemoveCaptures | Hoshi deriving (Eq, Ord, Show, Read,       Bounded)
 data InitialPlacement   = Standard | ScrambledEggs | Parachute | Gemma | Custom     deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data RuleSetGo          = AGA | GOE | Chinese | Japanese | NewZealand               deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data RuleSetBackgammon  = Crawford | CrawfordGame | Jacoby                          deriving (Eq, Ord, Show, Read, Enum, Bounded)
@@ -69,6 +71,27 @@ data WinType            = Score Rational | Resign | Time | Forfeit | OtherWinTyp
 data GameResult         = Draw | Void | Unknown | Win Color WinType                 deriving (Eq, Ord, Show, Read)
 data Quality            = Bad Emphasis | Doubtful | Interesting | Good Emphasis     deriving (Eq, Ord, Show, Read)
 data Rank               = Ranked Integer RankScale (Maybe Certainty) | OtherRank String         deriving (Eq, Ord, Show, Read)
+
+allFigureFlags :: [FigureFlag]
+allFigureFlags = [Coordinates, Name, HiddenMoves, RemoveCaptures, Hoshi]
+
+instance Enum FigureFlag where
+    toEnum 0 = Coordinates
+    toEnum 1 = Name
+    toEnum 2 = HiddenMoves
+    toEnum 8 = RemoveCaptures
+    toEnum 9 = Hoshi
+    toEnum n = error $ "unknown FigureFlag bit " ++ show n
+    fromEnum Coordinates    = 0
+    fromEnum Name           = 1
+    fromEnum HiddenMoves    = 2
+    fromEnum RemoveCaptures = 8
+    fromEnum Hoshi          = 9
+    enumFrom   lo    = dropWhile (/= lo) allFigureFlags
+    enumFromTo lo hi = filter (\x -> lo <= x && x <= hi) allFigureFlags
+    succ       lo    = enumFrom lo !! 1
+    pred       hi    = reverse (enumFromTo minBound hi) !! 1
+    -- TODO: enumFromThen, enumFromThenTo
 
 data Round = SimpleRound    Integer
            | FormattedRound Integer String
@@ -86,6 +109,28 @@ data PartialDate
     | Month { year :: Integer, month :: Integer }
     | Day   { year :: Integer, month :: Integer, day :: Integer }
     deriving (Eq, Ord, Show, Read)
+
+data Figure
+    = DefaultFigure
+    | NamedDefaultFigure String
+    | NamedFigure String (FigureFlag -> Bool)
+    deriving (Eq, Ord, Show, Read)
+
+-- function instances of Eq, Ord, Show, Read {{{
+mapFromFunction f = Map.fromList [(k, f k) | k <- [minBound..maxBound]]
+
+instance (Bounded k, Enum k, Ord k, Show k, Show v) => Show (k -> v) where
+    showsPrec n = showsPrec n . mapFromFunction
+
+instance (Ord k, Read k, Read v) => Read (k -> v) where
+    readsPrec n s = [((m Map.!), rest) | (m, rest) <- readsPrec n s]
+
+instance (Bounded k, Enum k, Ord k, Eq v) => Eq (k -> v) where
+    f == g = mapFromFunction f == mapFromFunction g
+
+instance (Bounded k, Enum k, Ord k, Ord v) => Ord (k -> v) where
+    compare = comparing mapFromFunction
+-- }}}
 
 data Game = Game {
     application     :: Maybe (Application, Version),
@@ -197,6 +242,7 @@ data Markup = Markup {
     lines       :: Set (Point, Point),
     dim         :: Maybe (Set Point), -- inherit, default Set.empty
     visible     :: Maybe (Set Point), -- inherit, default to the whole board
-    numbering   :: Maybe Numbering    -- inherit, default Numbered
+    numbering   :: Maybe Numbering,   -- inherit, default Numbered
+    figure      :: Maybe Figure       -- TODO: be extra careful when documenting this, especially the "NamedFigure" constructor
     } deriving (Eq, Ord, Show, Read)
-emptyMarkup = Markup Map.empty Map.empty Set.empty Set.empty Nothing Nothing Nothing
+emptyMarkup = Markup Map.empty Map.empty Set.empty Set.empty Nothing Nothing Nothing Nothing
