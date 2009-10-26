@@ -5,10 +5,10 @@ synopsis:           A library for the SGF (Smart Game Format) file format
 description:
     This library contains a complete parser for the most recent revision of
     the SGF file format specification.  There is currently support for file
-    format 4 only, game 1 (go/igo/weiqi/baduk) only, and the encodings
-    latin-1, utf-8, and ascii only.  There are plans to support parsing the
-    other game numbers as well as supporting a pretty-printer in future
-    releases.
+    format 4 only, game 1 (go, igo, weiqi, or baduk) only, and the encodings
+    latin-1, utf-8, and ascii only, but this should cover the majority of SGF
+    files.  There are plans to support parsing the other game numbers as well
+    as supporting a pretty-printer in future releases.
 category:           Data
 license:            BSD3
 license-file:       LICENSE
