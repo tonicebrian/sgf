@@ -34,8 +34,16 @@ guess ws encoding = case runStateT (decode encoding) ws :: MyIHateGHC of
     (MyEither (Right (s, []))) -> encodingFromStringExplicit s == Just encoding
     _ -> False
 
+-- |
+-- Try decoding the given word string with each of the known-good encodings to
+-- see if the decoded name names the encoding used to decode.  It should be
+-- impossible for this to return a list with more than one guess.
+guessEncoding :: [Word8] -> [DynEncoding]
 guessEncoding ws = filter (guess ws) encodings
 
+-- |
+-- A simple wrapper around the encoding package's 'decode' function.
+decodeWordStringExplicit :: Encoding e => e -> [Word8] -> Either DecodingException String
 decodeWordStringExplicit e ws = case runStateT (decode e) ws :: MyIHateGHC of
     (MyEither (Right (s,_))) -> Right s
     (MyEither (Left  ex   )) -> Left ex

@@ -1,6 +1,10 @@
 -- boilerplate {{{
 {-# LANGUAGE FlexibleContexts, NoMonomorphismRestriction #-}
-module Data.SGF.Parse.Raw where
+module Data.SGF.Parse.Raw (
+    collection,
+    Property(..),
+    enum
+) where
 
 import Control.Applicative hiding (many, (<|>))
 import Control.Monad
@@ -13,13 +17,28 @@ import Text.Parsec.Prim
 import Text.Parsec.Combinator
 -- }}}
 data Property = Property {
-    position :: SourcePos,
-    name     :: String,
-    values   :: [[Word8]]
+    position :: SourcePos, -- ^
+                           -- Currently, this is pretty lame: it doesn't track
+                           -- line number and character number, only byte
+                           -- offset from the beginning of the file.  This is
+                           -- because I don't really understand how to
+                           -- correctly track line number and character number
+                           -- properly in the face of dynamically changing
+                           -- encodings, whereas byte number is a totally
+                           -- braindead statistic to track.
+    name     :: String,    -- ^
+                           -- The literal name of the property.  This is
+                           -- guaranteed to be a non-empty string of
+                           -- upper-case ASCII characters.
+    values   :: [[Word8]]  -- ^ The arguments to the property.
 } deriving (Eq, Ord, Show)
 
-ensure p x = guard (p x) >> return x
+-- |
+-- Handy way to convert known-ASCII characters from 'Word8' to 'Char', among other
+-- things.
+enum :: (Enum a, Enum b) => a -> b
 enum = toEnum . fromEnum
+ensure p x = guard (p x) >> return x
 
 satisfy p = tokenPrim
     ((\x -> ['\'', x, '\'']) . enum)
@@ -61,4 +80,8 @@ gameTree = do
     exactWord ')'
     return (Node node (foldr ((return .) . Node) trees nodes))
 
+-- |
+-- Parse the tree-structure of an SGF file, but without any knowledge of the
+-- semantics of the properties, etc.
+collection :: Stream s m Word8 => ParsecT s u m [Tree [Property]]
 collection = whitespace >> sepEndBy1 gameTree whitespace <* whitespace <* eof

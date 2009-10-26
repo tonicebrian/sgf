@@ -20,6 +20,8 @@ build-type:         Simple
 library
     exposed-modules:    Data.SGF
                         Data.SGF.Parse
+                        Data.SGF.Parse.Raw
+                        Data.SGF.Parse.Util
                         Data.SGF.Types
 
     build-depends:  base,

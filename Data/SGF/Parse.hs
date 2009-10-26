@@ -1,7 +1,13 @@
 -- TODO: check that every occurrence of "die" should really be a death, and not just a "fix-it-up-and-warn"
 -- boilerplate {{{
-{-# LANGUAGE NoMonomorphismRestriction #-}
-module Data.SGF.Parse where
+{-# LANGUAGE NoMonomorphismRestriction, FlexibleContexts #-}
+module Data.SGF.Parse (
+    collection,
+    clipDate,
+    PropertyType(..),
+    properties,
+    extraProperties
+) where
 
 import Control.Applicative
 import Control.Arrow
@@ -19,6 +25,7 @@ import Data.Maybe
 import Data.Ord
 import Data.Time.Calendar
 import Data.Tree
+import Data.Word
 import Prelude     hiding (round)
 import Text.Parsec hiding (newline)
 import Text.Parsec.Pos    (newPos)
@@ -27,7 +34,7 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 
 import Data.SGF.Parse.Encodings
-import Data.SGF.Parse.Raw hiding (gameTree, collection)
+import Data.SGF.Parse.Raw hiding (collection)
 import Data.SGF.Types     hiding (Game(..), GameInfo(..), GameNode(..), Setup(..), Move(..))
 import Data.SGF.Types     (Game(Game), GameNode(GameNode))
 import Data.SGF.Parse.Util
@@ -35,7 +42,6 @@ import qualified Data.SGF.Parse.Raw as Raw
 import qualified Data.SGF.Types     as T
 -- }}}
 -- top level/testing {{{
-translate :: Monad m => Translator a -> Tree [Property] -> ParsecT s u m (a, [Warning])
 translate trans state = case runStateT (runWriterT trans) state of
     Left (UnknownError Nothing ) -> fail ""
     Left (UnknownError (Just e)) -> fail e
@@ -44,6 +50,14 @@ translate trans state = case runStateT (runWriterT trans) state of
 
 -- TODO: delete "test"
 test = runParser collection () "<interactive>" . map enum
+
+-- |
+-- Parse a 'Word8' stream into an SGF collection.  A collection is a list of
+-- games; the documentation for 'Game' has more details.  There are generally
+-- two kinds of errors in SGF files: recoverable ones (which will be
+-- accumulated in the ['Warning'] return) and unrecoverable ones (which will
+-- result in parse errors).
+collection :: Stream s m Word8 => ParsecT s u m (Collection, [Warning])
 collection = second concat . unzip <$> (mapM (translate gameTree) =<< Raw.collection)
 gameTree = do
     hea <- parseHeader
@@ -64,10 +78,6 @@ gameTree = do
 warnAll     w ps = mapM_ (\p -> maybe (return ()) (tell . (:[]) . w) =<< consume p) ps
 dieEarliest e ps = dieWith e . head . sortBy (comparing position) . catMaybes =<< mapM consume ps
 -- game header information {{{
-getFormat   :: Translator Integer
-getEncoding :: Translator DynEncoding
-parseHeader :: Translator Header
-
 getFormat   = do
     prop <- consumeSingle "FF"
     ff   <- maybe (return 1) number prop
@@ -83,10 +93,6 @@ getEncoding = do
 
 parseHeader = liftM2 Header getFormat getEncoding
 
-application         :: Header -> Translator (Maybe (String, String))
-gameType            :: Translator GameType
-variationType       :: Translator (Maybe (VariationType, AutoMarkup))
-size                :: GameType -> Translator (Maybe (Integer, Integer))
 application = flip transMap "AP" . join compose . simple
 gameType    = do
     property <- consumeSingle "GM"
@@ -217,6 +223,14 @@ date = expect [] . splitWhen (== ',') where
     checkMD md = ensureLength 2 md >>= readM
     readM      = listToMaybe . map fst . filter (null . snd) . reads
 
+-- |
+-- Clip to a valid, representable date.  Years are clipped to the 0000-9999
+-- range; months are clipped to the 1-12 range, and days are clipped to the
+-- 1-\<number of days in the given month\> range (accounting for leap years in
+-- the case of February).
+--
+-- If a parsed date is changed by this function, a warning is emitted.
+clipDate :: PartialDate -> PartialDate
 clipDate (y@Year  {}) = Year . min 9999 . max 0 . year $ y
 clipDate (Month { year = y, month = m }) = Month {
     year  = year . clipDate . Year $ y,
@@ -351,8 +365,24 @@ figurePTranslator header p = do
              else NamedFigure name (not . testBit flags . fromEnum)
 -- }}}
 -- known properties list {{{
-data PropertyType = Move | Setup | Root | GameInfo | Inherit | None deriving (Eq, Ord, Show, Read, Enum, Bounded)
+-- |
+-- Types of properties, as given in the SGF specification.
+data PropertyType
+    = Move
+    | Setup
+    | Root
+    | GameInfo
+    | Inherit -- ^
+              -- Technically, these properties have type \"none\" and
+              -- /attribute/ \"inherit\", but the property index lists them as
+              -- properties of type \"inherit\" with no attributes, so we
+              -- follow that lead.
+    | None
+    deriving (Eq, Ord, Show, Read, Enum, Bounded)
 
+-- |
+-- All properties of each type listed in the SGF specification.
+properties :: GameType -> PropertyType -> [String]
 properties = liftM2 (++) properties' . extraProperties where
     properties' Move     = ["B", "KO", "MN", "W", "BM", "DO", "IT", "TE", "BL", "OB", "OW", "WL"]
     properties' Setup    = ["AB", "AE", "AW", "PL"]
@@ -402,6 +432,9 @@ ruleSet read maybeDefault header = do
 
 ruleSetDefault = ruleSet (const Nothing) Nothing
 
+-- |
+-- Just the properties associated with specific games.
+extraProperties :: GameType -> PropertyType -> [String]
 extraProperties Go            GameInfo = ["HA", "KM"]
 extraProperties Go            None     = ["TB", "TW"]
 extraProperties Backgammon    Setup    = ["CO", "CV", "DI"]
