@@ -1,6 +1,6 @@
 -- boilerplate {{{
 {-# LANGUAGE FlexibleContexts, NoMonomorphismRestriction #-}
-module SGF.Parse.Raw where
+module Data.SGF.Parse.Raw where
 
 import Control.Applicative hiding (many, (<|>))
 import Control.Monad

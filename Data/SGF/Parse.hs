@@ -1,7 +1,7 @@
 -- TODO: check that every occurrence of "die" should really be a death, and not just a "fix-it-up-and-warn"
 -- boilerplate {{{
 {-# LANGUAGE NoMonomorphismRestriction #-}
-module SGF.Parse where
+module Data.SGF.Parse where
 
 import Control.Applicative
 import Control.Arrow
@@ -26,13 +26,13 @@ import Text.Parsec.Pos    (newPos)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 
-import SGF.Parse.Encodings
-import SGF.Parse.Raw hiding (gameTree, collection)
-import SGF.Types     hiding (Game(..), GameInfo(..), GameNode(..), Setup(..), Move(..))
-import SGF.Types     (Game(Game), GameNode(GameNode))
-import SGF.Parse.Util
-import qualified SGF.Parse.Raw as Raw
-import qualified SGF.Types     as T
+import Data.SGF.Parse.Encodings
+import Data.SGF.Parse.Raw hiding (gameTree, collection)
+import Data.SGF.Types     hiding (Game(..), GameInfo(..), GameNode(..), Setup(..), Move(..))
+import Data.SGF.Types     (Game(Game), GameNode(GameNode))
+import Data.SGF.Parse.Util
+import qualified Data.SGF.Parse.Raw as Raw
+import qualified Data.SGF.Types     as T
 -- }}}
 -- top level/testing {{{
 translate :: Monad m => Translator a -> Tree [Property] -> ParsecT s u m (a, [Warning])

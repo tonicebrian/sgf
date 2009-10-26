@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleInstances, FlexibleContexts, GeneralizedNewtypeDeriving #-}
-module SGF.Parse.Encodings (guessEncoding, decodeWordStringExplicit) where
+module Data.SGF.Parse.Encodings (guessEncoding, decodeWordStringExplicit) where
 
 import Control.Exception.Extensible
 import Control.Monad.State

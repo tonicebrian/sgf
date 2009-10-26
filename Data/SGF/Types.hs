@@ -1,6 +1,6 @@
 -- boilerplate {{{
 {-# LANGUAGE EmptyDataDecls #-}
-module SGF.Types where
+module Data.SGF.Types where
 
 import Data.List
 import Data.Map hiding (empty, filter, findIndex)

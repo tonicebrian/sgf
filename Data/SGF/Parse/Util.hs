@@ -1,5 +1,5 @@
 -- boilerplate {{{
-module SGF.Parse.Util where
+module Data.SGF.Parse.Util where
 
 import Control.Arrow
 import Control.Monad.Error hiding (Error(..))
@@ -18,9 +18,9 @@ import Data.Tree
 import Data.Word
 import Text.Parsec hiding (State(..), choice, newline)
 
-import SGF.Parse.Encodings
-import SGF.Parse.Raw
-import SGF.Types hiding (name)
+import Data.SGF.Parse.Encodings
+import Data.SGF.Parse.Raw
+import Data.SGF.Types hiding (name)
 -- }}}
 -- new types {{{
 -- Header {{{
