@@ -1,6 +1,6 @@
-module SGF (
-    module SGF.Types,
-    module SGF.Parse
+module Data.SGF (
+    module Data.SGF.Types,
+    module Data.SGF.Parse
 ) where
 
 -- It should be noted that the SGF specification talks not only about the file
@@ -8,8 +8,8 @@ module SGF (
 -- files.  This library cannot guarantee that applications conform to that
 -- specification.
 
-import SGF.Types
-import SGF.Parse (collection)
+import Data.SGF.Types
+import Data.SGF.Parse (collection)
 
 -- TODO:
 -- * support the rest of the SGF format ;-)
