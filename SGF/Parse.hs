@@ -118,7 +118,7 @@ size gameType = do
 -- }}}
 -- game-info properties {{{
 gameInfo header =
-        foldM (consumeSimpleGameInfo header) emptyGameInfo simpleGameInfo
+        consumeFreeformGameInfo header
     >>= consumeUpdateGameInfo      rank   (\g v -> g { T.rankBlack = v }) "BR" header
     >>= consumeUpdateGameInfo      rank   (\g v -> g { T.rankWhite = v }) "WR" header
     >>= consumeUpdateGameInfo      round  (\g v -> g { T.round     = v }) "RO" header
@@ -127,25 +127,30 @@ gameInfo header =
     >>= warnClipDate
     >>= timeLimit
 
-simpleGameInfo = [
-    ("AN", \i s -> i { T.annotator        = s }),
-    ("BT", \i s -> i { T.teamNameBlack    = s }),
-    ("CP", \i s -> i { T.copyright        = s }),
-    ("EV", \i s -> i { T.event            = s }),
-    ("GN", \i s -> i { T.game             = s }),
-    ("GC", \i s -> i { T.context          = s }),
-    ("ON", \i s -> i { T.opening          = s }),
-    ("OT", \i s -> i { T.overtime         = s }),
-    ("PB", \i s -> i { T.playerNameBlack  = s }),
-    ("PC", \i s -> i { T.location         = s }),
-    ("PW", \i s -> i { T.playerNameWhite  = s }),
-    ("SO", \i s -> i { T.source           = s }),
-    ("US", \i s -> i { T.user             = s }),
-    ("WT", \i s -> i { T.teamNameWhite    = s })
+freeformGameInfo = [
+    ("AN", T.Annotator       ),
+    ("BT", T.TeamName Black  ),
+    ("CP", T.Copyright       ),
+    ("EV", T.Event           ),
+    ("GN", T.GameName        ),
+    ("GC", T.Context         ),
+    ("ON", T.Opening         ),
+    ("OT", T.Overtime        ),
+    ("PB", T.PlayerName Black),
+    ("PC", T.Location        ),
+    ("PW", T.PlayerName White),
+    ("SO", T.Source          ),
+    ("US", T.User            ),
+    ("WT", T.TeamName White  )
     ]
+consumeFreeformGameInfo header = fmap gameInfo tagValues where
+    (tags, types) = unzip freeformGameInfo
+    tagValues     = mapM (transMap (simple header)) tags
+    gameInfo vals = (\m -> emptyGameInfo { T.freeform = m })
+                  . Map.fromList . catMaybes
+                  $ zipWith (fmap . (,)) types vals
 
-consumeSimpleGameInfo h g (p, u) = consumeUpdateGameInfo id u p h g
-consumeUpdateGameInfo            = consumeUpdateGameInfoMaybe . (return .)
+consumeUpdateGameInfo = consumeUpdateGameInfoMaybe . (return .)
 consumeUpdateGameInfoMaybe fromString update property header gameInfo = do
     maybeProp   <- consumeSingle property
     maybeString <- transMap' (simple header) maybeProp

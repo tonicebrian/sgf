@@ -64,6 +64,17 @@ data Mark               = Circle | X | Selected | Square | Triangle             
 data Numbering          = Unnumbered | Numbered | Modulo100                         deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data ViewerSetting      = Tried | Marked | LastMove | Headings | Lock               deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data InitialPlacement   = Standard | ScrambledEggs | Parachute | Gemma | Custom     deriving (Eq, Ord, Show, Read, Enum, Bounded)
+data GameInfoType       = TeamName Color | PlayerName Color | Annotator | Source | User | Copyright | Context | Location | Event | GameName | Opening | Overtime
+     deriving (Eq, Ord, Show, Read)
+
+allGameInfoTypes = [TeamName Black, TeamName White, PlayerName Black, PlayerName White, Annotator, Source, User, Copyright, Context, Location, Event, GameName, Opening, Overtime]
+instance Enum GameInfoType where
+    toEnum = (allGameInfoTypes !!)
+    fromEnum t = fromJust $ findIndex (t==) allGameInfoTypes
+
+instance Bounded GameInfoType where
+    minBound = head allGameInfoTypes
+    maxBound = last allGameInfoTypes
 -- }}}
 -- rulesets {{{
 data RuleSetGo          = AGA | GOE | Chinese | Japanese | NewZealand               deriving (Eq, Ord, Show, Read, Enum, Bounded)
@@ -167,32 +178,18 @@ data Setup stone = Setup {
 emptySetup = Setup Set.empty Set.empty Set.empty Nothing
 -- }}}
 -- GameInfo {{{
--- TODO: maybe turn coalesce all the String entries into a map from a custom enumeration?
 data GameInfo ruleSet extra = GameInfo {
     rankBlack       :: Maybe Rank,
     rankWhite       :: Maybe Rank,
-    teamNameBlack   :: Maybe String,
-    teamNameWhite   :: Maybe String,
-    playerNameBlack :: Maybe String,
-    playerNameWhite :: Maybe String,
-    annotator       :: Maybe String,
-    source          :: Maybe String,
-    user            :: Maybe String,
-    copyright       :: Maybe String,
     date            :: Maybe [PartialDate], -- TODO: use Set PartialDate instead of Maybe [PartialDate]?
-    context         :: Maybe String,
-    location        :: Maybe String,
-    event           :: Maybe String,
     round           :: Maybe Round,
-    game            :: Maybe String,
-    opening         :: Maybe String,
-    overtime        :: Maybe String,
     ruleSet         :: Maybe (RuleSet ruleSet),
     timeLimit       :: Maybe Rational,
     result          :: Maybe GameResult,
+    freeform        :: Map GameInfoType String,
     otherGameInfo   :: extra
     } deriving (Eq, Ord, Show, Read)
-emptyGameInfo = GameInfo Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing () -- lololololol
+emptyGameInfo = GameInfo Nothing Nothing Nothing Nothing Nothing Nothing Nothing Map.empty ()
 
 data GameInfoGo            = GameInfoGo             { handicap :: Maybe Integer, komi :: Maybe Rational }                                                                           deriving (Eq, Ord, Show, Read)
 data GameInfoBackgammon    = GameInfoBackgammon     { match :: Maybe [MatchInfo] }                                                                                                  deriving (Eq, Ord, Show, Read)
