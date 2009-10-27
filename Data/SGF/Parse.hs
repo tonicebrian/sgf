@@ -6,7 +6,11 @@ module Data.SGF.Parse (
     clipDate,
     PropertyType(..),
     properties,
-    extraProperties
+    extraProperties,
+    Property(..),
+    Warning(..),
+    ErrorType(..),
+    Error(..)
 ) where
 
 import Control.Applicative

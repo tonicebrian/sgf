@@ -30,6 +30,7 @@ data Header = Header {
 }
 -- }}}
 -- Error {{{
+-- |
 data ErrorType
     = UnknownEncoding
     | AmbiguousEncoding
@@ -44,6 +45,7 @@ data ErrorType
     | ExtraMoveAnnotations
     deriving (Eq, Ord, Show, Read, Bounded, Enum)
 
+-- Errors signify unrecoverable errors.
 data Error
     = KnownError   { errorType :: ErrorType, errorPosition :: SourcePos }
     | UnknownError { errorDescription :: Maybe String }
@@ -65,6 +67,8 @@ dieWithJust e = dieWith e . fromJust
 -- }}}
 -- Warning {{{
 -- by convention, a warning that does not end in a verb just "did the right thing" to correct the problem
+-- |
+-- Warnings signify recoverable errors.
 data Warning
     = DuplicatePropertyOmitted          Property
     | SquareSizeSpecifiedAsRectangle    SourcePos
