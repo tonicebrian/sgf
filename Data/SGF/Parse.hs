@@ -334,7 +334,7 @@ addMarks marks (mark, points) = tell warning >> return result where
 markup header point = do
     markedPoints <- mapM (transMapList (listOfPoint point)) ["CR", "MA", "SL", "SQ", "TR"]
     marks        <- foldM addMarks Map.empty . zip [Circle ..] $ markedPoints
-    label        <- transMapList (listOf (compose point (simple header))) "LB"
+    labels       <- transMapList (listOf (compose point (simple header))) "LB"
     arrows       <- consumePointPairs "AR"
     lines        <- consumePointPairs "LN"
     dim          <- transMapMulti ( listOfPoint point) "DD"
@@ -342,13 +342,13 @@ markup header point = do
     numbering    <- transMap number "PM"
     figure       <- transMap (figurePTranslator header) "FG"
 
-    tell . map DuplicateLabelOmitted $ label \\ nubBy (on (==) fst) label
+    tell . map DuplicateLabelOmitted $ labels \\ nubBy (on (==) fst) labels
     tell [UnknownNumberingIgnored n | Just n <- [numbering], n < 0 || n > 2]
     -- TODO: some kind of warning when omitting arrows and lines
 
     return Markup {
         T.marks     = marks,
-        T.label     = Map.fromList label,
+        T.labels    = Map.fromList labels,
         T.arrows    = prune arrows,
         T.lines     = prune . map canonicalize $ lines,
         T.dim       = fmap Set.fromList dim,

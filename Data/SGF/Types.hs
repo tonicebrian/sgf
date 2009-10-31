@@ -259,7 +259,7 @@ type AnnotationGo = Map Color (Set Point)
 
 data Markup = Markup {
     marks       :: Map Point Mark,
-    label       :: Map Point String,
+    labels      :: Map Point String,
     arrows      :: Set (Point, Point),
     lines       :: Set (Point, Point),
     dim         :: Maybe (Set Point), -- inherit, default Set.empty
