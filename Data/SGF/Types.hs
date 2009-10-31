@@ -190,8 +190,8 @@ mapFromFunction f = Map.fromList [(k, f k) | k <- [minBound..maxBound]]
 instance (Bounded k, Enum k, Ord k, Show k, Show v) => Show (k -> v) where
     showsPrec n = showsPrec n . mapFromFunction
 
-instance (Ord k, Read k, Read v) => Read (k -> v) where
-    readsPrec n s = [((m Map.!), rest) | (m, rest) <- readsPrec n s]
+instance (Bounded k, Enum k, Ord k, Read k, Read v) => Read (k -> v) where
+    readsPrec n s = [((m Map.!), rest) | (m, rest) <- readsPrec n s, all (`Map.member` m) [minBound..]]
 
 instance (Bounded k, Enum k, Ord k, Eq v) => Eq (k -> v) where
     f == g = mapFromFunction f == mapFromFunction g
