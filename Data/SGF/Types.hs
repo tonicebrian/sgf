@@ -1,6 +1,52 @@
 -- boilerplate {{{
 {-# LANGUAGE EmptyDataDecls #-}
-module Data.SGF.Types where
+module Data.SGF.Types (
+    -- * Game type
+    Game(..), GameTree(..), GameNode(..),
+    Move(..), Setup(..),
+    Annotation(..), Markup(..), GameInfo(..), GameInfoType(..),
+    emptyGameNode, emptyMove, emptySetup, emptyGameInfo, emptyAnnotation, emptyMarkup,
+
+    -- * Game-specific types
+    -- ** Go
+    NodeGo, MoveGo(..), RuleSetGo(..), GameInfoGo(..), AnnotationGo,
+
+    -- ** Backgammon
+    NodeBackgammon, RuleSetBackgammon(..), GameInfoBackgammon(..),
+    MatchInfo(..),
+
+    -- ** Lines of Action
+    NodeLinesOfAction, GameInfoLinesOfAction(..),
+    InitialPosition(..), InitialPlacement(..),
+
+    -- ** Hex
+    NodeHex, GameInfoHex(..),
+    ViewerSetting(..),
+
+    -- ** Octi
+    NodeOcti, RuleSetOcti(..), GameInfoOcti(..),
+    MajorVariation(..), MinorVariation(..),
+
+    -- ** Other
+    NodeOther,
+
+    -- * Type aliases
+    Collection, Point,
+    Application, Version, AutoMarkup,
+    TreeGo, TreeBackgammon, TreeLinesOfAction, TreeHex, TreeOcti, TreeOther,
+
+    -- * Enumerations
+    Color(..), RankScale(..),
+    Emphasis(..), Certainty(..), FuzzyBool(..),
+    GameType(..),
+    Judgment(..), Quality(..),
+    Mark(..), Numbering(..), VariationType(..), FigureFlag(..),
+
+    -- * Miscellaneous
+    WinType(..), GameResult(..), Rank(..), RuleSet(..),
+    Round(..), PartialDate(..), Figure(..),
+    Void
+) where
 
 import Data.List
 import Data.Map hiding (empty, filter, findIndex)
@@ -48,7 +94,8 @@ instance Enum GameType where
 type Collection         = [Game]
 type Application        = String
 type Version            = String
-type Point              = (Integer, Integer) -- 0-indexed
+-- | 0-indexed x/y coordinates that start at the top left
+type Point              = (Integer, Integer)
 type AutoMarkup         = Bool
 -- }}}
 -- enums {{{
