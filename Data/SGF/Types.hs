@@ -338,7 +338,7 @@ data GameInfo ruleSet extra = GameInfo {
     -- | The strength of the white player.  See also
     -- <http://www.red-bean.com/sgf/properties.html#WR>
     rankWhite       :: Maybe Rank,
-    date            :: Maybe [PartialDate], -- TODO: use Set PartialDate instead of Maybe [PartialDate]?
+    date            :: Set PartialDate,
     round           :: Maybe Round,
     ruleSet         :: Maybe (RuleSet ruleSet),
     timeLimit       :: Maybe Rational,
@@ -348,7 +348,7 @@ data GameInfo ruleSet extra = GameInfo {
     } deriving (Eq, Ord, Show, Read)
 
 emptyGameInfo :: GameInfo ruleSet ()
-emptyGameInfo = GameInfo Nothing Nothing Nothing Nothing Nothing Nothing Nothing Map.empty ()
+emptyGameInfo = GameInfo Nothing Nothing Set.empty Nothing Nothing Nothing Nothing Map.empty ()
 
 data GameInfoGo            = GameInfoGo             { handicap :: Maybe Integer, komi :: Maybe Rational }                                                                           deriving (Eq, Ord, Show, Read)
 data GameInfoBackgammon    = GameInfoBackgammon     { match :: Maybe [MatchInfo] }                                                                                                  deriving (Eq, Ord, Show, Read)

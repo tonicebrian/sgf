@@ -133,7 +133,7 @@ gameInfo header =
     >>= consumeUpdateGameInfo      rank   (\g v -> g { T.rankWhite = v }) "WR" header
     >>= consumeUpdateGameInfo      round  (\g v -> g { T.round     = v }) "RO" header
     >>= consumeUpdateGameInfoMaybe result (\g v -> g { T.result    = v }) "RE" header
-    >>= consumeUpdateGameInfoMaybe date   (\g v -> g { T.date      = v }) "DT" header
+    >>= consumeUpdateGameInfoMaybe date   dateUpdate                      "DT" header
     >>= warnClipDate
     >>= timeLimit
 
@@ -245,9 +245,11 @@ clipDate (Day { year = y, month = m, day = d }) = let m' = clipDate (Month y m) 
     day  = max 1 . min (fromIntegral (gregorianMonthLength (year m') (fromIntegral (month m')))) $ d
     }
 
-warnClipDate gameInfo@(T.GameInfo { T.date = d }) = let d' = fmap (map clipDate) d in do
-    when (d /= d') (tell [InvalidDatesClipped (fromJust d)])
+warnClipDate gameInfo@(T.GameInfo { T.date = d }) = let d' = Set.map clipDate d in do
+    when (d /= d') (tell [InvalidDatesClipped d])
     return gameInfo { T.date = d' }
+
+dateUpdate g v = g { T.date = maybe Set.empty Set.fromList v }
 
 round s = case words s of
     [roundNumber@(_:_)]                | all isDigit roundNumber

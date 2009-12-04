@@ -14,6 +14,7 @@ import Data.List
 import Data.Maybe
 import Data.Map (Map(..), fromList, keys)
 import Data.Ord
+import Data.Set (Set)
 import Data.Tree
 import Data.Word
 import Text.Parsec hiding (State(..), choice, newline)
@@ -77,7 +78,7 @@ data Warning
     | UnknownPropertyPreserved          String
     | PointSpecifiedAsPointRange        Property
     | DuplicatePointsOmitted            Property [Point]
-    | InvalidDatesClipped               [PartialDate]
+    | InvalidDatesClipped               (Set PartialDate)
     | AnnotationWithNoMoveOmitted       Property
     | ExtraGameInfoOmitted              Property
     | NestedRootPropertyOmitted         Property
