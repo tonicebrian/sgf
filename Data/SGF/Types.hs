@@ -58,6 +58,7 @@ import Data.Ord
 import Data.Set hiding (empty, filter)
 import Data.Tree
 import Data.Word
+import Prelude hiding (round)
 
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -69,7 +70,9 @@ instance Read Void where readsPrec _ _ = []
 instance Show Void where show _  = ""
 -- }}}
 -- GameType {{{
--- | This enumeration is used for the GM property (see <http://www.red-bean.com/sgf/properties.html#GM>).  The Enum instance converts to and from the numeric game codes listed there.  See also 'GameTree'.
+-- | See also 'GameTree'.  This enumeration is used for the GM property (see
+-- <http://www.red-bean.com/sgf/properties.html#GM>).  The Enum instance
+-- converts to and from the numeric game codes listed there.
 data GameType =
     Go | Othello | Chess | Gomoku | NineMen'sMorris |
     Backgammon | ChineseChess | Shogi | LinesOfAction | Ataxx |
@@ -115,16 +118,55 @@ data Color              = Black     | White         deriving (Eq, Ord, Show, Rea
 -- | See also 'Rank'.
 data Certainty          = Uncertain | Certain       deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data InitialPosition    = Beginning | End           deriving (Eq, Ord, Show, Read, Enum, Bounded)
--- | In addition to the standard \"kyu\" and \"dan\" ranks, this also
--- supports the non-standard (but common) \"pro\" ranks.  See also 'Rank'.
+-- | See also 'Rank'.  In addition to the standard \"kyu\" and \"dan\" ranks,
+-- this also supports the non-standard (but common) \"pro\" ranks.
 data RankScale          = Kyu | Dan | Pro           deriving (Eq, Ord, Show, Read, Enum, Bounded)
 -- | See also 'Annotation'.
 data Judgment           = GoodForWhite | GoodForBlack | Even | Unclear              deriving (Eq, Ord, Show, Read, Enum, Bounded)
 -- | See also 'Markup'.
 data Mark               = Circle | X | Selected | Square | Triangle                 deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data InitialPlacement   = Standard | ScrambledEggs | Parachute | Gemma | Custom     deriving (Eq, Ord, Show, Read, Enum, Bounded)
-data GameInfoType       = TeamName Color | PlayerName Color | Annotator | Source | User | Copyright | Context | Location | Event | GameName | Opening | Overtime
-     deriving (Eq, Ord, Show, Read)
+
+-- | See also 'GameInfo', especially the 'freeform' field.
+data GameInfoType
+    -- | See also the BT and WT properties at
+    -- <http://www.red-bean.com/sgf/properties.html#BT>
+    = TeamName Color
+    -- | See also the PB and PW properties at
+    -- <http://www.red-bean.com/sgf/properties.html#PB>
+    | PlayerName Color
+    -- | The name of the person who annotated the game.  See also
+    -- <http://www.red-bean.com/sgf/properties.html#AN>
+    | Annotator
+    -- | The name of the source, e.g. the title of the book this game came from.
+    -- See also <http://www.red-bean.com/sgf/properties.html#SO>
+    | Source
+    -- | The name of the person or program who entered the game.  See also
+    -- <http://www.red-bean.com/sgf/properties.html#US>
+    | User
+    -- | See also <http://www.red-bean.com/sgf/properties.html#CP>
+    | Copyright
+    -- | Background information or a summary of the game.  See also
+    -- <http://www.red-bean.com/sgf/properties.html#GC>
+    | Context
+    -- | Where the game was played.  See also
+    -- <http://www.red-bean.com/sgf/properties.html#PC>
+    | Location
+    -- | The name of the event or tournament at which the game occurred.
+    -- Additional information about the game (e.g. that it was in the finals)
+    -- should appear in the 'round' field, not here.  See also
+    -- <http://www.red-bean.com/sgf/properties.html#EV>
+    | Event
+    -- | An easily-remembered moniker for the game.  See also
+    -- <http://www.red-bean.com/sgf/properties.html#GN>
+    | GameName
+    -- | A description of the opening moves using the game's vernacular.  See
+    -- also <http://www.red-bean.com/sgf/properties.html#ON>
+    | Opening
+    -- | The overtime rules.  See also
+    -- <http://www.red-bean.com/sgf/properties.html#OT>
+    | Overtime
+    deriving (Eq, Ord, Show, Read)
 
 -- | See also 'GameTree' and <http://www.red-bean.com/sgf/hex.html#IS>
 data ViewerSetting
@@ -153,22 +195,49 @@ instance Bounded GameInfoType where
     maxBound = last allGameInfoTypes
 -- }}}
 -- rulesets {{{
-data RuleSetGo          = AGA | GOE | Chinese | Japanese | NewZealand               deriving (Eq, Ord, Show, Read, Enum, Bounded)
-data RuleSetBackgammon  = Crawford | CrawfordGame | Jacoby                          deriving (Eq, Ord, Show, Read, Enum, Bounded)
+-- | See also 'RuleSet', 'GameInfo', and
+-- <http://red-bean.com/sgf/properties.html#RU>
+data RuleSetGo
+    -- | American Go Association rules
+    = AGA
+    -- | Ing rules
+    | GOE
+    | Chinese | Japanese | NewZealand
+    deriving (Eq, Ord, Show, Read, Enum, Bounded)
+-- | See also 'RuleSet', 'GameInfo', and
+-- <http://red-bean.com/sgf/backgammon.html#RU>
+data RuleSetBackgammon
+    -- | The Crawford rule is being used.
+    = Crawford
+    -- | This game /is/ the Crawford game.
+    | CrawfordGame
+    -- | The Jacoby rule is being used.
+    | Jacoby
+    deriving (Eq, Ord, Show, Read, Enum, Bounded)
+-- | See also 'RuleSet', 'GameInfo', and <http://red-bean.com/sgf/octi.html#RU>
 data RuleSetOcti        = OctiRuleSet MajorVariation [MinorVariation]               deriving (Eq, Ord, Show, Read)
+-- | See also 'RuleSetOcti'.
 data MajorVariation     = Full | Fast | Kids                                        deriving (Eq, Ord, Show, Read, Enum, Bounded)
+-- | See also 'RuleSetOcti'.
 data MinorVariation     = Edgeless | Superprong | OtherMinorVariation String        deriving (Eq, Ord, Show, Read)
+-- | See also 'GameInfo'.  Typical values for the @a@ type variable are
+-- 'RuleSetGo', 'RuleSetBackgammon', and 'RuleSetOcti'.  For games where the
+-- valid values of the ruleset field is not specified, the @a@ type variable
+-- will be 'Void' to ensure that all rulesets are specified as a String.
 data RuleSet a          = Known !a | OtherRuleSet String                            deriving (Eq, Ord, Show, Read)
 -- }}}
 -- misc types {{{
+-- | See also 'GameResult'.  Games that end normally use @Score@ if there is a
+-- natural concept of score for that game and @OtherWinType@ if not.
 data WinType            = Score Rational | Resign | Time | Forfeit | OtherWinType   deriving (Eq, Ord, Show, Read)
+-- | See also 'GameInfo'.
 data GameResult         = Draw | Void | Unknown | Win Color WinType                 deriving (Eq, Ord, Show, Read)
 -- | See also 'Move'.
 data Quality            = Bad Emphasis | Doubtful | Interesting | Good Emphasis     deriving (Eq, Ord, Show, Read)
 
--- | The @Eq@ and @Ord@ instances are the derived ones, and should not be
--- mistaken for semantic equality or ordering.  See also 'GameInfo',
--- especially the 'rankBlack' and 'rankWhite' fields.
+-- | See also 'GameInfo', especially the 'rankBlack' and 'rankWhite' fields.
+-- The @Eq@ and @Ord@ instances are the derived ones, and should not be mistaken
+-- for semantic equality or ordering.
 data Rank
     -- | Ranked in one of the standard ways.  Most SGF generators specify
     -- the certainty only when it is @Uncertain@.  Therefore, it may be
@@ -179,9 +248,15 @@ data Rank
     | OtherRank String
     deriving (Eq, Ord, Show, Read)
 
-data Round = SimpleRound    Integer
-           | FormattedRound Integer String
-           | OtherRound             String
+-- | See also 'GameInfo'.
+data Round
+    -- | Only a round number is given.
+    = SimpleRound    Integer
+    -- | Both a round number and a type, like \"final\", \"playoff\", or
+    -- \"league\".
+    | FormattedRound Integer String
+    -- | Round information in an unknown format.
+    | OtherRound             String
     deriving (Eq, Ord, Show, Read)
 
 data MatchInfo = Length           Integer
@@ -190,6 +265,7 @@ data MatchInfo = Length           Integer
                | OtherMatchInfo String String
     deriving (Eq, Ord, Show, Read)
 
+-- | See also 'GameInfo'.
 data PartialDate
     = Year  { year :: Integer }
     | Month { year :: Integer, month :: Integer }
@@ -239,7 +315,7 @@ data Figure
     = DefaultFigure
     -- | Named figure using the application default settings.
     | NamedDefaultFigure String
-    -- | Named figure that overrides the applications figure settings.
+    -- | Named figure that overrides the application's figure settings.
     | NamedFigure String (FigureFlag -> Bool)
     deriving (Eq, Ord, Show, Read)
 -- function instances of Eq, Ord, Show, Read {{{
@@ -295,15 +371,16 @@ data Move move = Move {
 emptyMove :: Move move
 emptyMove = Move Nothing Possibly Nothing Nothing Nothing Nothing Nothing Nothing
 
+-- | See also 'NodeGo' and 'Game'.
 data MoveGo = Pass | Play Point deriving (Eq, Ord, Show, Read)
 -- }}}
 -- Setup {{{
--- | 'Setup' nodes are distinct from 'Move' nodes in that they need not
--- correspond to any natural part of the game, and game rules (e.g. for
--- capture) are not applied after executing 'Setup' nodes.  They can be used
--- for any non-standard changes to the game board or to create illegal board
--- positions.  The locations specified in the @addBlack@, @addWhite@, and
--- @remove@ fields must be pairwise disjoint.  See also 'GameNode'.
+-- | See also 'GameNode'.  'Setup' nodes are distinct from 'Move' nodes in that
+-- they need not correspond to any natural part of the game, and game rules
+-- (e.g. for capture) are not applied after executing 'Setup' nodes.  They can
+-- be used for any non-standard changes to the game board or to create illegal
+-- board positions.  The locations specified in the @addBlack@, @addWhite@, and
+-- @remove@ fields must be pairwise disjoint.
 data Setup stone = Setup {
     -- | This node adds the given black pieces to the board; if the board
     -- before this setup node had any pieces at the locations given by this
@@ -327,10 +404,9 @@ emptySetup :: Setup stone
 emptySetup = Setup Set.empty Set.empty Set.empty Nothing
 -- }}}
 -- GameInfo {{{
--- | Each individual game may have at most one node with associated game
--- info.  If it has such a node, it must occur at the first node where that
--- game is distinguishable from all of the other games in the tree.  See
--- also 'GameNode'.
+-- | See also 'GameNode'.  Each individual game may have at most one node with
+-- associated game info.  If it has such a node, it must occur at the first node
+-- where that game is distinguishable from all of the other games in the tree.
 data GameInfo ruleSet extra = GameInfo {
     -- | The strength of the black player.  See also
     -- <http://www.red-bean.com/sgf/properties.html#BR>
@@ -338,19 +414,42 @@ data GameInfo ruleSet extra = GameInfo {
     -- | The strength of the white player.  See also
     -- <http://www.red-bean.com/sgf/properties.html#WR>
     rankWhite       :: Maybe Rank,
+    -- | When the game was played.  An empty set indicates that no date
+    -- information is available.  See also
+    -- <http://www.red-bean.com/sgf/properties.html#DT>
     date            :: Set PartialDate,
+    -- | The round number (for games played in a tournament).  See also
+    -- <http://www.red-bean.com/sgf/properties.html#RO>
     round           :: Maybe Round,
+    -- | The ruleset used for this game.  See also
+    -- <http://www.red-bean.com/sgf/properties.html#RU>
     ruleSet         :: Maybe (RuleSet ruleSet),
+    -- | The time limit of the game in seconds.  See also
+    -- <http://www.red-bean.com/sgf/properties.html#TM>
     timeLimit       :: Maybe Rational,
+    -- | How the game ended.  See also
+    -- <http://www.red-bean.com/sgf/properties.html#RE>
     result          :: Maybe GameResult,
+    -- | Miscellaneous properties with no prescribed format.
     freeform        :: Map GameInfoType String,
+    -- | Certain game types specify additional informational properties, which
+    -- are stored here.
     otherGameInfo   :: extra
     } deriving (Eq, Ord, Show, Read)
 
 emptyGameInfo :: GameInfo ruleSet ()
 emptyGameInfo = GameInfo Nothing Nothing Set.empty Nothing Nothing Nothing Nothing Map.empty ()
 
-data GameInfoGo            = GameInfoGo             { handicap :: Maybe Integer, komi :: Maybe Rational }                                                                           deriving (Eq, Ord, Show, Read)
+-- | See also 'NodeGo' and the 'otherGameInfo' field of 'GameInfo'.
+data GameInfoGo            = GameInfoGo {
+    -- | Specifying this does not automatically add stones to the board; a
+    -- 'Setup' node with a non-empty 'addBlack' field should be specified before
+    -- any 'Move' nodes.  See also <http://red-bean.com/sgf/go.html#HA>
+    handicap :: Maybe Integer,
+    -- | See also <http://red-bean.com/sgf/go.html#KM>
+    komi     :: Maybe Rational
+    } deriving (Eq, Ord, Show, Read)
+
 data GameInfoBackgammon    = GameInfoBackgammon     { match :: Maybe [MatchInfo] }                                                                                                  deriving (Eq, Ord, Show, Read)
 data GameInfoLinesOfAction = GameInfoLinesOfAction  { initialPositionLOA :: InitialPosition, invertYAxis :: Bool, initialPlacement :: InitialPlacement }                            deriving (Eq, Ord, Show, Read)
 data GameInfoHex           = GameInfoHex            { initialPositionHex :: Maybe () }                                                                                              deriving (Eq, Ord, Show, Read)
@@ -384,15 +483,17 @@ data Annotation extra = Annotation {
 emptyAnnotation :: Annotation ()
 emptyAnnotation = Annotation Nothing Nothing Nothing Nothing Nothing ()
 
+-- | See also 'NodeGo' and the 'otherAnnotation' field of 'Annotation'.  This
+-- specifies which points are considered territory for each player.  See also
+-- the TB and TW properties at <http://red-bean.com/sgf/go.html#TB>
 type AnnotationGo = Map Color (Set Point)
 
--- | Presumably, no arrow in the @arrows@ field should exactly overlap a
--- line specified in the @lines@ field; however, this is not explicitly made
--- illegal by the SGF spec.  Note that some fields are marked \"inherit\".
--- These inheritances are not explicitly tracked; @Nothing@ values indicate
--- that the correct interpretation depends on the node's ancestors, or on
--- the default if no ancestor has a @Just@ value in this field.  See also
--- 'GameNode'.
+-- | See also 'GameNode'.  Presumably, no arrow in the @arrows@ field should
+-- exactly overlap a line specified in the @lines@ field; however, this is not
+-- explicitly made illegal by the SGF spec.  Note that some fields are marked
+-- \"inherit\".  These inheritances are not explicitly tracked; @Nothing@ values
+-- indicate that the correct interpretation depends on the node's ancestors, or
+-- on the default if no ancestor has a @Just@ value in this field.
 data Markup = Markup {
     -- | See also the CR, MA, SL, SQ, and TR properties at
     -- <http://www.red-bean.com/sgf/properties.html#CR>
@@ -504,16 +605,16 @@ data GameNode move stone ruleSet extraGameInfo extraAnnotation = GameNode {
 emptyGameNode :: GameNode move stone ruleSet extraGameInfo ()
 emptyGameNode = GameNode Nothing (Left emptySetup) emptyAnnotation emptyMarkup Map.empty
 
--- See also 'TreeGo'.
+-- | See also 'TreeGo' and 'Game'.
 type NodeGo            = GameNode MoveGo  Point   RuleSetGo         GameInfoGo              AnnotationGo
--- See also 'TreeBackgammon'.
+-- | See also 'TreeBackgammon' and 'Game'.
 type NodeBackgammon    = GameNode ()      ()      RuleSetBackgammon GameInfoBackgammon      ()
--- See also 'TreeLinesOfAction'.
+-- | See also 'TreeLinesOfAction' and 'Game'.
 type NodeLinesOfAction = GameNode ()      ()      Void              GameInfoLinesOfAction   ()
--- See also 'TreeHex'.
+-- | See also 'TreeHex' and 'Game'.
 type NodeHex           = GameNode ()      ()      Void              GameInfoHex             ()
--- See also 'TreeOcti'.
+-- | See also 'TreeOcti' and 'Game'.
 type NodeOcti          = GameNode ()      ()      RuleSetOcti       GameInfoOcti            ()
--- See also 'TreeOther'.
+-- | See also 'TreeOther' and 'Game'.
 type NodeOther         = GameNode [Word8] [Word8] Void              ()                      ()
 -- }}}
