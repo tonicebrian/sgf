@@ -15,7 +15,7 @@ module Data.SGF.Types (
     NodeGo, MoveGo(..), RuleSetGo(..), GameInfoGo(..), AnnotationGo,
 
     -- ** Backgammon
-    NodeBackgammon, RuleSetBackgammon(..), GameInfoBackgammon(..),
+    NodeBackgammon, RuleSetBackgammon(..), GameInfoBackgammon,
     MatchInfo(..),
 
     -- ** Lines of Action
@@ -259,10 +259,17 @@ data Round
     | OtherRound             String
     deriving (Eq, Ord, Show, Read)
 
-data MatchInfo = Length           Integer
-               | GameNumber       Integer
-               | StartScore Color Integer
-               | OtherMatchInfo String String
+-- | See also 'GameInfoBackgammon' and
+-- <http://red-bean.com/sgf/backgammon.html#MI>
+data MatchInfo
+    -- | The number of points in this match.
+    = Length           Integer
+    -- | The (1-indexed) number of the game within this match.
+    | GameNumber       Integer
+    -- | The score at the beginning of the game.
+    | StartScore Color Integer
+    -- | An unknown piece of match information.
+    | OtherMatchInfo String String
     deriving (Eq, Ord, Show, Read)
 
 -- | See also 'GameInfo'.
@@ -450,7 +457,12 @@ data GameInfoGo            = GameInfoGo {
     komi     :: Maybe Rational
     } deriving (Eq, Ord, Show, Read)
 
-data GameInfoBackgammon    = GameInfoBackgammon     { match :: Maybe [MatchInfo] }                                                                                                  deriving (Eq, Ord, Show, Read)
+-- | See also 'NodeBackgammon' and the 'otherGameInfo' field of 'GameInfo'.  An
+-- empty list indicates that no match information was specified.  The order of
+-- the list is not significant, and there should be only one value of any given
+-- kind of 'MatchInfo'.  See also <http://red-bean.com/sgf/backgammon.html#MI>
+type GameInfoBackgammon = [MatchInfo]
+
 data GameInfoLinesOfAction = GameInfoLinesOfAction  { initialPositionLOA :: InitialPosition, invertYAxis :: Bool, initialPlacement :: InitialPlacement }                            deriving (Eq, Ord, Show, Read)
 data GameInfoHex           = GameInfoHex            { initialPositionHex :: Maybe () }                                                                                              deriving (Eq, Ord, Show, Read)
 data GameInfoOcti          = GameInfoOcti           { squaresWhite :: Maybe [Point], squaresBlack :: Maybe [Point], prongs :: Integer, reserve :: Integer, superProngs :: Integer } deriving (Eq, Ord, Show, Read)
