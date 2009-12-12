@@ -422,12 +422,12 @@ ruleSetBackgammon = ruleSetLookup [
     ]
 ruleSetOcti s = case break (== ':') s of
     (major, ':':minors) -> liftM  (flip OctiRuleSet (minorVariations minors       )) (majorVariation major        )
-    (majorOrMinors, "") -> liftM  (flip OctiRuleSet []                             ) (majorVariation majorOrMinors)
+    (majorOrMinors, "") -> liftM  (flip OctiRuleSet (Set.empty                    )) (majorVariation majorOrMinors)
                    `mplus` return (OctiRuleSet Full (minorVariations majorOrMinors))
     where
     majorVariation      = ruleSetLookup [("full", Full), ("fast", Fast), ("kids", Kids)]
     minorVariation    s = fromMaybe (OtherMinorVariation s) . ruleSetLookup [("edgeless", Edgeless), ("superprong", Superprong)] $ s
-    minorVariations     = map minorVariation . splitWhen (== ',')
+    minorVariations     = Set.fromList . map minorVariation . splitWhen (== ',')
 
 ruleSet read maybeDefault header = do
     maybeRulesetString <- transMap (simple header) "RU"

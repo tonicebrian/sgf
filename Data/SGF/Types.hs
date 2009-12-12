@@ -215,7 +215,7 @@ data RuleSetBackgammon
     | Jacoby
     deriving (Eq, Ord, Show, Read, Enum, Bounded)
 -- | See also 'RuleSet', 'GameInfo', and <http://red-bean.com/sgf/octi.html#RU>
-data RuleSetOcti        = OctiRuleSet MajorVariation [MinorVariation]               deriving (Eq, Ord, Show, Read)
+data RuleSetOcti        = OctiRuleSet MajorVariation (Set MinorVariation)           deriving (Eq, Ord, Show, Read)
 -- | See also 'RuleSetOcti'.
 data MajorVariation     = Full | Fast | Kids                                        deriving (Eq, Ord, Show, Read, Enum, Bounded)
 -- | See also 'RuleSetOcti'.
