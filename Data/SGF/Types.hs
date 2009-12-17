@@ -63,6 +63,7 @@ import Prelude hiding (round)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 
+-- | A type with no constructors used merely to indicate a lack of data.
 data Void
 instance Eq   Void where _ == _ = True
 instance Ord  Void where compare _ _ = EQ
@@ -111,8 +112,6 @@ type AutoMarkup         = Bool
 -- enums {{{
 -- | See also 'Move'.
 data FuzzyBool          = Possibly  | Definitely    deriving (Eq, Ord, Show, Read, Enum, Bounded)
--- | See also 'Game'.
-data VariationType      = Children  | Siblings      deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data Emphasis           = Normal    | Strong        deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data Color              = Black     | White         deriving (Eq, Ord, Show, Read, Enum, Bounded)
 -- | See also 'Rank'.
@@ -123,9 +122,26 @@ data InitialPosition    = Beginning | End           deriving (Eq, Ord, Show, Rea
 data RankScale          = Kyu | Dan | Pro           deriving (Eq, Ord, Show, Read, Enum, Bounded)
 -- | See also 'Annotation'.
 data Judgment           = GoodForWhite | GoodForBlack | Even | Unclear              deriving (Eq, Ord, Show, Read, Enum, Bounded)
--- | See also 'Markup'.
-data Mark               = Circle | X | Selected | Square | Triangle                 deriving (Eq, Ord, Show, Read, Enum, Bounded)
 data InitialPlacement   = Standard | ScrambledEggs | Parachute | Gemma | Custom     deriving (Eq, Ord, Show, Read, Enum, Bounded)
+
+-- | See also 'Game'.
+data VariationType
+    = Children -- ^ Variations are stored in child nodes.
+    | Siblings -- ^ Variations are stored in sibling nodes.
+    deriving (Eq, Ord, Show, Read, Enum, Bounded)
+
+-- | See also 'Markup'.  With the exception of 'Selected', the constructor
+-- names describe a shape whose outline should be shown over the given point.
+data Mark
+    = Circle
+    | X
+    -- | The exact appearance of this kind of markup is not specified, though
+    -- suggestions include darkening the colors on these points or inverting
+    -- the colors on these points.
+    | Selected
+    | Square
+    | Triangle
+    deriving (Eq, Ord, Show, Read, Enum, Bounded)
 
 -- | See also 'GameInfo', especially the 'freeform' field.
 data GameInfoType
@@ -223,17 +239,22 @@ data MinorVariation     = Edgeless | Superprong | OtherMinorVariation String    
 -- | See also 'GameInfo'.  Typical values for the @a@ type variable are
 -- 'RuleSetGo', 'RuleSetBackgammon', and 'RuleSetOcti'.  For games where the
 -- valid values of the ruleset field is not specified, the @a@ type variable
--- will be 'Void' to ensure that all rulesets are specified as a String.
+-- will be 'Void' to ensure that all rulesets are specified as a 'String'.
 data RuleSet a          = Known !a | OtherRuleSet String                            deriving (Eq, Ord, Show, Read)
 -- }}}
 -- misc types {{{
 -- | See also 'GameResult'.  Games that end normally use @Score@ if there is a
--- natural concept of score for that game and @OtherWinType@ if not.
+-- natural concept of score differential for that game and @OtherWinType@ if
+-- not.
 data WinType            = Score Rational | Resign | Time | Forfeit | OtherWinType   deriving (Eq, Ord, Show, Read)
--- | See also 'GameInfo'.
-data GameResult         = Draw | Void | Unknown | Win Color WinType                 deriving (Eq, Ord, Show, Read)
 -- | See also 'Move'.
 data Quality            = Bad Emphasis | Doubtful | Interesting | Good Emphasis     deriving (Eq, Ord, Show, Read)
+
+-- | See also 'GameInfo'.
+data GameResult
+    = Draw | Void | Unknown
+    | Win Color WinType -- ^ The first argument is the color of the winner.
+    deriving (Eq, Ord, Show, Read)
 
 -- | See also 'GameInfo', especially the 'rankBlack' and 'rankWhite' fields.
 -- The @Eq@ and @Ord@ instances are the derived ones, and should not be mistaken
@@ -463,6 +484,7 @@ data GameInfoGo            = GameInfoGo {
 -- kind of 'MatchInfo'.  See also <http://red-bean.com/sgf/backgammon.html#MI>
 type GameInfoBackgammon = [MatchInfo]
 
+-- TODO: documented up to here
 data GameInfoLinesOfAction = GameInfoLinesOfAction  { initialPositionLOA :: InitialPosition, invertYAxis :: Bool, initialPlacement :: InitialPlacement }                            deriving (Eq, Ord, Show, Read)
 data GameInfoHex           = GameInfoHex            { initialPositionHex :: Maybe () }                                                                                              deriving (Eq, Ord, Show, Read)
 data GameInfoOcti          = GameInfoOcti           { squaresWhite :: Maybe [Point], squaresBlack :: Maybe [Point], prongs :: Integer, reserve :: Integer, superProngs :: Integer } deriving (Eq, Ord, Show, Read)
