@@ -296,8 +296,6 @@ setupPoint point = do
         remove'    = remove    Set.\\ (addBlack `Set.union` addWhite')
     unless (null duplicates) (tell [DuplicateSetupOperationsOmitted duplicates])
     setupFinish addBlack addWhite' remove'
-    where
-    points = transMapList (listOfPoint point)
 
 -- note: does not (cannot, in general) check the constraint that addBlack,
 -- addWhite, and remove specify disjoint sets of points
@@ -460,11 +458,11 @@ gameInfoGo = liftM2 GameInfoGo (transMap number "HA") (transMap real "KM")
 pointGo (Property { values = [[x, y]] }) | valid x && valid y = return (translate x, translate y)
     where
     valid x     = (enum 'a' <= x && x <= enum 'z') || (enum 'A' <= x && x <= enum 'Z')
-    translate x = enum x - enum (if x < enum 'a' then 'A' else 'a') + 1
+    translate x = enum x - enum (if x < enum 'a' then 'A' else 'a')
 pointGo p = dieWith BadlyFormattedValue p
 
 moveGo _             (Property { values = [[]] }) = return Pass
-moveGo (Just (w, h)) p                            = pointGo p >>= \v@(x, y) -> return $ if x > w || y > h then Pass else Play v
+moveGo (Just (w, h)) p                            = pointGo p >>= \v@(x, y) -> return $ if x >= w || y >= h then Pass else Play v
 moveGo _             p                            = fmap Play (pointGo p)
 
 annotationGo = do
