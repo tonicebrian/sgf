@@ -104,7 +104,8 @@ First, some boring stuff.
 >
 > (!!) = genericIndex
 
-First, we'll extract the 'TreeGo' representing the game:
+Now we'll extract the 'TreeGo' representing the game.  As suggested in the
+overview section, we'll use the 'collection' parser.
 
 > grabTree :: [Word8] -> TreeGo
 > grabTree s = case runParser collection () "stdin" s of
