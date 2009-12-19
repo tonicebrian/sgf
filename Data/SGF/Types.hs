@@ -23,10 +23,11 @@ module Data.SGF.Types (
     InitialPosition(..), InitialPlacement(..),
 
     -- ** Hex
-    NodeHex, GameInfoHex(..),
+    NodeHex, GameInfoHex,
     ViewerSetting(..),
 
     -- ** Octi
+    -- $octi
     NodeOcti, RuleSetOcti(..), GameInfoOcti(..),
     MajorVariation(..), MinorVariation(..),
 
@@ -116,12 +117,14 @@ data Emphasis           = Normal    | Strong        deriving (Eq, Ord, Show, Rea
 data Color              = Black     | White         deriving (Eq, Ord, Show, Read, Enum, Bounded)
 -- | See also 'Rank'.
 data Certainty          = Uncertain | Certain       deriving (Eq, Ord, Show, Read, Enum, Bounded)
+-- | See also 'GameInfoLinesOfAction'.
 data InitialPosition    = Beginning | End           deriving (Eq, Ord, Show, Read, Enum, Bounded)
 -- | See also 'Rank'.  In addition to the standard \"kyu\" and \"dan\" ranks,
 -- this also supports the non-standard (but common) \"pro\" ranks.
 data RankScale          = Kyu | Dan | Pro           deriving (Eq, Ord, Show, Read, Enum, Bounded)
 -- | See also 'Annotation'.
 data Judgment           = GoodForWhite | GoodForBlack | Even | Unclear              deriving (Eq, Ord, Show, Read, Enum, Bounded)
+-- | See also 'GameInfoLinesOfAction'.
 data InitialPlacement   = Standard | ScrambledEggs | Parachute | Gemma | Custom     deriving (Eq, Ord, Show, Read, Enum, Bounded)
 
 -- | See also 'Game'.
@@ -469,7 +472,7 @@ emptyGameInfo :: GameInfo ruleSet ()
 emptyGameInfo = GameInfo Nothing Nothing Set.empty Nothing Nothing Nothing Nothing Map.empty ()
 
 -- | See also 'NodeGo' and the 'otherGameInfo' field of 'GameInfo'.
-data GameInfoGo            = GameInfoGo {
+data GameInfoGo = GameInfoGo {
     -- | Specifying this does not automatically add stones to the board; a
     -- 'Setup' node with a non-empty 'addBlack' field should be specified before
     -- any 'Move' nodes.  See also <http://red-bean.com/sgf/go.html#HA>
@@ -484,10 +487,60 @@ data GameInfoGo            = GameInfoGo {
 -- kind of 'MatchInfo'.  See also <http://red-bean.com/sgf/backgammon.html#MI>
 type GameInfoBackgammon = [MatchInfo]
 
--- TODO: documented up to here
-data GameInfoLinesOfAction = GameInfoLinesOfAction  { initialPositionLOA :: InitialPosition, invertYAxis :: Bool, initialPlacement :: InitialPlacement }                            deriving (Eq, Ord, Show, Read)
-data GameInfoHex           = GameInfoHex            { initialPositionHex :: Maybe () }                                                                                              deriving (Eq, Ord, Show, Read)
-data GameInfoOcti          = GameInfoOcti           { squaresWhite :: Maybe [Point], squaresBlack :: Maybe [Point], prongs :: Integer, reserve :: Integer, superProngs :: Integer } deriving (Eq, Ord, Show, Read)
+-- | See also 'NodeLinesOfAction' and the 'otherGameInfo' field of 'GameInfo'.
+data GameInfoLinesOfAction = GameInfoLinesOfAction {
+    -- | When this field is 'Beginning', the viewer should initially show the
+    -- board position after setup but before any moves.  (When 'End', the
+    -- viewer should display the final position.)  See also
+    -- <http://www.red-bean.com/sgf/loa.html#IP>
+    initialPositionLOA  :: InitialPosition,
+    -- | When this field is 'True', the board should be displayed with numbers
+    -- increasing from the bottom to the top of the screen.  (When 'False', the
+    -- numbers should be decreasing.)  See also
+    -- <http://www.red-bean.com/sgf/loa.html#IY>
+    invertYAxis         :: Bool,
+    -- | The initial placement of pieces and rule variation.  See also
+    -- <http://www.red-bean.com/sgf/loa.html#SU>
+    initialPlacement    :: InitialPlacement
+    } deriving (Eq, Ord, Show, Read)
+
+-- | See also 'NodeHex' and the 'otherGameInfo' field of 'GameInfo'.  The
+-- specification says that trees representing Hex games will mark which
+-- position the viewer should initially show by setting this field to 'True'.
+-- I think this is probably an error in the specification; there is an obvious
+-- conflict between the requirement to put all game information at the first
+-- node where a game is uniquely identifiable and the requirement to have a
+-- game-information property at the location you want to view first (whenever
+-- these two nodes are not the same node, of course).  For this reason, Hex
+-- game trees may have paths containing two nodes whose game information is not
+-- 'Nothing'.  See also <http://www.red-bean.com/sgf/hex.html#IP>
+type GameInfoHex = Bool
+
+-- $octi
+-- For Octi, 'Black' always refers to the first player and 'White' always
+-- refers to the second player, regardless of the colors of the actual pieces
+-- used by the first and second players.
+
+-- | See also 'NodeOcti' and the 'otherGameInfo' field of 'GameInfo'.
+data GameInfoOcti = GameInfoOcti {
+    -- | Black should be set up with one empty pod on each of these points.  An
+    -- empty set indicates that this property was not specified.  See also
+    -- <http://www.red-bean.com/sgf/octi.html#BO>
+    squaresWhite    :: Set Point,
+    -- | White should be set up with one empty pod on each of these points.  An
+    -- empty set indicates that this property was not specified.  See also
+    -- <http://www.red-bean.com/sgf/octi.html#WO>
+    squaresBlack    :: Set Point,
+    -- | How many prongs each player starts with.  See also
+    -- <http://www.red-bean.com/sgf/octi.html#NP>
+    prongs          :: Integer,
+    -- | How many pods each player has in reserve to start with.  See also
+    -- <http://www.red-bean.com/sgf/octi.html#NR>
+    reserve         :: Integer,
+    -- | How many superprongs each player starts with.  See also
+    -- <http://www.red-bean.com/sgf/octi.html#NS>
+    superProngs     :: Integer
+    } deriving (Eq, Ord, Show, Read)
 -- }}}
 -- Annotation/Markup {{{
 -- | See also 'GameNode'.
