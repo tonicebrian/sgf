@@ -3,7 +3,7 @@ version:            0.1
 author:             Daniel Wagner
 maintainer:         daniel@wagner-home.com
 homepage:           http://www.dmwit.com/sgf
-bug-reports:        http://dmwit.fogbugz.com/default.asp?command=new&pg=pgEditBug
+bug-reports:        http://dmwit.fogbugz.com/
 synopsis:           SGF (Smart Game Format) parser
 description:
     This is a parser for the go\/igo\/weiqi\/baduk fragment of the SGF format.
@@ -37,9 +37,9 @@ library
 
 source-repository head
     type:       git
-    location:   http://www.dmwit.com/sgf
+    location:   http://www.dmwit.com/sgf/.git
 
 source-repository this
     type:       git
-    location:   http://www.dmwit.com/sgf
+    location:   http://www.dmwit.com/sgf/.git
     tag:        0.1
