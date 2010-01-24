@@ -9,6 +9,7 @@ module Data.SGF (
     module Data.SGF.Types,
     module Data.SGF.Parse,
     module Data.Word,
+    module Data.Tree,
     module Text.ParserCombinators.Parsec
     -- * Overview of SGF
     -- $sgf
@@ -23,6 +24,7 @@ module Data.SGF (
 import Data.SGF.Types
 import Data.SGF.Parse (collection)
 import Data.Word
+import Data.Tree
 import Text.ParserCombinators.Parsec (runParser)
 
 -- TODO:
