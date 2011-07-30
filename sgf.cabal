@@ -1,5 +1,5 @@
 name:               sgf
-version:            0.1.1
+version:            0.1.2
 author:             Daniel Wagner
 maintainer:         daniel@wagner-home.com
 homepage:           http://dmwit.com/sgf
@@ -42,4 +42,4 @@ source-repository head
 source-repository this
     type:       git
     location:   http://dmwit.com/sgf/.git
-    tag:        0.1.1
+    tag:        0.1.2
