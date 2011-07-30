@@ -2,7 +2,7 @@ name:               sgf
 version:            0.1.1
 author:             Daniel Wagner
 maintainer:         daniel@wagner-home.com
-homepage:           http://www.dmwit.com/sgf
+homepage:           http://dmwit.com/sgf
 bug-reports:        http://dmwit.fogbugz.com/
 synopsis:           SGF (Smart Game Format) parser
 description:
@@ -37,9 +37,9 @@ library
 
 source-repository head
     type:       git
-    location:   http://www.dmwit.com/sgf/.git
+    location:   http://dmwit.com/sgf/.git
 
 source-repository this
     type:       git
-    location:   http://www.dmwit.com/sgf/.git
+    location:   http://dmwit.com/sgf/.git
     tag:        0.1.1
