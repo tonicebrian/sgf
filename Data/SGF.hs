@@ -8,6 +8,7 @@ There are plans to support other games and pretty-printing in future releases.
 module Data.SGF (
     module Data.SGF.Types,
     module Data.SGF.Parse,
+    module Data.SGF.Kifu,
     module Data.Word,
     module Data.Tree,
     module Text.ParserCombinators.Parsec
@@ -23,6 +24,7 @@ module Data.SGF (
 
 import Data.SGF.Types
 import Data.SGF.Parse (collection)
+import Data.SGF.Kifu
 import Data.Word
 import Data.Tree
 import Text.ParserCombinators.Parsec (runParser)

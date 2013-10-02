@@ -21,6 +21,7 @@ library
     exposed-modules:    Data.SGF
                         Data.SGF.Parse
                         Data.SGF.Types
+                        Data.SGF.Kifu
 
     other-modules:      Data.SGF.Parse.Encodings
                         Data.SGF.Parse.Raw
@@ -33,7 +34,10 @@ library
                     time>=1,
                     parsec>=3,
                     split,
-                    encoding>=0.6
+                    encoding>=0.6,
+                    colour>=2,
+                    diagrams-svg,
+                    diagrams-lib
 
 source-repository head
     type:       git
