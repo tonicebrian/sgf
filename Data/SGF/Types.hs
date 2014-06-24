@@ -56,7 +56,7 @@ import Data.List
 import Data.Map hiding (empty, filter, findIndex)
 import Data.Maybe
 import Data.Ord
-import Data.Set hiding (empty, filter)
+import Data.Set hiding (empty, filter, findIndex)
 import Data.Tree
 import Data.Word
 import Prelude hiding (round)

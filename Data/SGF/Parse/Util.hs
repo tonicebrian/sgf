@@ -2,8 +2,8 @@
 module Data.SGF.Parse.Util where
 
 import Control.Arrow
-import Control.Monad.Error hiding (Error(..))
-import qualified Control.Monad.Error as Either
+import Control.Monad.Except hiding (Error(..))
+import qualified Control.Monad.Trans.Except as Either
 import Control.Monad.State hiding (State(..))
 import Control.Monad.Writer
 import Data.Char
@@ -51,10 +51,6 @@ data Error
     = KnownError   { errorType :: ErrorType, errorPosition :: SourcePos }
     | UnknownError { errorDescription :: Maybe String }
     deriving (Eq, Ord, Show)
-
-instance Either.Error Error where
-    noMsg  = UnknownError Nothing
-    strMsg = UnknownError . Just
 
 die         :: Error -> Translator a
 dieWithPos  :: ErrorType -> SourcePos -> Translator a

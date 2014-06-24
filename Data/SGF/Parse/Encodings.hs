@@ -3,12 +3,21 @@ module Data.SGF.Parse.Encodings (guessEncoding, decodeWordStringExplicit) where
 
 import Control.Exception.Extensible
 import Control.Monad.State
+import Control.Applicative (Applicative(..))
+import Control.Monad (liftM,ap)
 import Control.Throws
 import Data.Encoding
 import Data.Word
 
 type MyIHateGHC = MyEither DecodingException (String, [Word8])
 newtype MyEither a b = MyEither (Either a b) deriving (Throws a)
+
+instance Functor (MyEither a) where
+    fmap = liftM
+
+instance Applicative (MyEither a) where
+    pure = return 
+    (<*>) = ap
 
 instance Monad (MyEither a) where
     return = MyEither . Right
