@@ -35,7 +35,7 @@ library
                     time>=1,
                     parsec>=3,
                     split,
-                    encoding>=0.6,
+                    encoding>=0.8,
                     transformers>=0.4
 
 source-repository head
