@@ -1,7 +1,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# OPTIONS_GHC -fno-warn-noncanonical-monad-instances #-}
+{-# LANGUAGE InstanceSigs #-}
+
+-- {-# OPTIONS_GHC -fno-warn-noncanonical-monad-instances #-}
 
 module Data.SGF.Parse.Encodings (guessEncoding, decodeWordStringExplicit) where
 
@@ -21,11 +23,10 @@ instance Functor (MyEither a) where
   fmap = liftM
 
 instance Applicative (MyEither a) where
-  pure = return
+  pure x = return x
   (<*>) = ap
 
 instance Monad (MyEither a) where
-  return = MyEither . Right
   (MyEither (Right x)) >>= f = f x
   (MyEither (Left x)) >>= f = MyEither (Left x)
 
