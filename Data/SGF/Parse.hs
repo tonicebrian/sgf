@@ -61,10 +61,6 @@ instance MonadFail (Either Error) where
     fail :: String -> Either Error a
     fail msg = Left (UnknownError (Just msg))
 
--- instance MonadFail (Failing e) where
---   fail = Failing . Left . userError
--- }}}
--- top level/testing {{{
 translate trans state =
     case runStateT (runWriterT trans) state of
         Left (UnknownError Nothing) -> fail ""
