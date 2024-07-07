@@ -28,7 +28,6 @@ library
                         Data.SGF.Parse.Raw
                         Data.SGF.Parse.Util
 
-    -- build-depends:  base,
     build-depends:  base >=3 && < 5,
                     containers,
                     extensible-exceptions,
