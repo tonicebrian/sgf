@@ -1,9 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE InstanceSigs #-}
-
--- {-# OPTIONS_GHC -fno-warn-noncanonical-monad-instances #-}
 
 module Data.SGF.Parse.Encodings (guessEncoding, decodeWordStringExplicit) where
 
