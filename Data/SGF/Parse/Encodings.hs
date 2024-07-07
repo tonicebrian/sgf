@@ -23,6 +23,7 @@ instance Functor (MyEither a) where
 instance Applicative (MyEither a) where
   pure :: a2 -> MyEither a1 a2
   pure x = return x -- note that an eta reduced version of this trips the type checker for non-canonical "pure = return"
+  (<*>) :: MyEither a1 (a2 -> b) -> MyEither a1 a2 -> MyEither a1 b
   (<*>) = ap
 
 instance Monad (MyEither a) where
