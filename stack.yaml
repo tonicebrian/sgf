@@ -3,6 +3,6 @@ extra-package-dbs: []
 packages:
 - .
 extra-deps:
-- encoding-0.8.2
-- regex-compat-0.93.1
-resolver: lts-9.9
+- encoding-0.8.9
+- regex-compat-0.95.2.1
+resolver: lts-21.25
