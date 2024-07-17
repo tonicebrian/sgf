@@ -14,20 +14,17 @@ description:
 category:           Data
 license:            BSD3
 license-file:       LICENSE
-cabal-version:      >= 1.8
+cabal-version:      >= 1.10
 build-type:         Simple
 
 library
-    ghc-options:    -Werror
-
+    default-language:   Haskell2010
     exposed-modules:    Data.SGF
                         Data.SGF.Parse
                         Data.SGF.Types
-
     other-modules:      Data.SGF.Parse.Encodings
                         Data.SGF.Parse.Raw
                         Data.SGF.Parse.Util
-
     build-depends:  base >=3 && < 5,
                     containers,
                     extensible-exceptions,
