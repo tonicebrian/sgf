@@ -1,36 +1,47 @@
-{-# LANGUAGE FlexibleInstances, FlexibleContexts, GeneralizedNewtypeDeriving #-}
-module Data.SGF.Parse.Encodings (guessEncoding, decodeWordStringExplicit) where
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE InstanceSigs #-}
 
-import Control.Exception.Extensible
-import Control.Monad.State
+module Data.SGF.Parse.Encodings
+    ( guessEncoding
+    , decodeWordStringExplicit
+    ) where
+
 import Control.Applicative (Applicative(..))
-import Control.Monad (liftM,ap)
+import Control.Exception.Extensible
+import Control.Monad (ap, liftM)
+import Control.Monad.State
 import Control.Throws
 import Data.Encoding
 import Data.Word
 
 type MyIHateGHC = MyEither DecodingException (String, [Word8])
-newtype MyEither a b = MyEither (Either a b) deriving (Throws a)
+
+newtype MyEither a b =
+    MyEither (Either a b)
+    deriving (Throws a)
 
 instance Functor (MyEither a) where
     fmap = liftM
 
 instance Applicative (MyEither a) where
-    pure = return 
+    pure :: a2 -> MyEither a1 a2
+    pure x = return x -- note that an eta reduced version of this trips the type checker for non-canonical "pure = return"
+    (<*>) :: MyEither a1 (a2 -> b) -> MyEither a1 a2 -> MyEither a1 b
     (<*>) = ap
 
 instance Monad (MyEither a) where
-    return = MyEither . Right
     (MyEither (Right x)) >>= f = f x
-    (MyEither (Left  x)) >>= f = MyEither (Left x)
+    (MyEither (Left x)) >>= f = MyEither (Left x)
 
 instance ByteSource (StateT [Word8] (MyEither DecodingException)) where
     sourceEmpty = gets null
-    fetchWord8  = do
+    fetchWord8 = do
         s <- get
         case s of
-            []      -> throwException UnexpectedEnd
-            c:cs    -> put cs >> return c
+            [] -> throwException UnexpectedEnd
+            c:cs -> put cs >> return c
     fetchAhead m = do
         s <- get
         v <- m
@@ -39,9 +50,12 @@ instance ByteSource (StateT [Word8] (MyEither DecodingException)) where
 
 -- some ones that we know satisfy our invariant (see SGF.Parse.Raw)
 encodings = map encodingFromString ["latin1", "utf-8", "ascii"]
-guess ws encoding = case runStateT (decode encoding) ws :: MyIHateGHC of
-    (MyEither (Right (s, []))) -> encodingFromStringExplicit s == Just encoding
-    _ -> False
+
+guess ws encoding =
+    case runStateT (decode encoding) ws :: MyIHateGHC of
+        (MyEither (Right (s, []))) ->
+            encodingFromStringExplicit s == Just encoding
+        _ -> False
 
 -- |
 -- Try decoding the given word string with each of the known-good encodings to
@@ -52,7 +66,9 @@ guessEncoding ws = filter (guess ws) encodings
 
 -- |
 -- A simple wrapper around the encoding package's 'decode' function.
-decodeWordStringExplicit :: Encoding e => e -> [Word8] -> Either DecodingException String
-decodeWordStringExplicit e ws = case runStateT (decode e) ws :: MyIHateGHC of
-    (MyEither (Right (s,_))) -> Right s
-    (MyEither (Left  ex   )) -> Left ex
+decodeWordStringExplicit ::
+       Encoding e => e -> [Word8] -> Either DecodingException String
+decodeWordStringExplicit e ws =
+    case runStateT (decode e) ws :: MyIHateGHC of
+        (MyEither (Right (s, _))) -> Right s
+        (MyEither (Left ex)) -> Left ex
