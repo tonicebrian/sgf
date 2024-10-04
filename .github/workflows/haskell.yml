@@ -1,0 +1,45 @@
+name: Haskell CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ghc: ["9.4", "9.6"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up GHC with Stack
+        uses: haskell/actions/setup@v1
+        with:
+          ghc-version: 9.4.8 # GHC version from LTS 21.25
+          stack-version: 2.7.5
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.stack
+            .stack-work
+          key: ${{ runner.os }}-stack-${{ hashFiles('**/stack.yaml.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+
+      - name: Install dependencies
+        run: stack setup --no-terminal
+
+      - name: Build project
+        run: stack build --no-terminal
+
+      - name: Run tests
+        run: stack test --no-terminal
