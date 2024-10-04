@@ -18,6 +18,13 @@ packages:
       size: 262
   original:
     hackage: regex-compat-0.95.2.1
+- completed:
+    hackage: split-0.2.5@sha256:5bc1ae848bfded3087ea3e568908f1b75f56ecde6f02df3fad1a138dd5c783d5,2625
+    pantry-tree:
+      sha256: 5d28c851a2c98e3d8ac0f01adc58303d775afe39dce23ec953be64ae65d11166
+      size: 443
+  original:
+    hackage: split-0.2.5
 snapshots:
 - completed:
     sha256: a81fb3877c4f9031e1325eb3935122e608d80715dc16b586eb11ddbff8671ecd
