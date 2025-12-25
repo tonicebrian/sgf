@@ -44,7 +44,6 @@ library sgf-internal
     build-depends:      bytestring >= 0.11.5.3 && < 0.13,
                         containers >= 0.6.7 && < 0.9,
                         encoding >= 0.8.9 && < 0.11,
-                        extensible-exceptions >= 0.1.1 && < 0.2,
                         mtl >= 2.2.2 && < 2.4,
                         transformers >= 0.5.6 && < 0.7,
                         time >= 1.12.2 && < 1.16,
